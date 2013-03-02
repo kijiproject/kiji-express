@@ -155,37 +155,6 @@
           </execution>
         </executions>
       </plugin>
-      <!-- <plugin> -->
-      <!--   <groupId>org.scala-tools</groupId> -->
-      <!--   <artifactId>maven-scala-plugin</artifactId> -->
-      <!--   <version>2.15.2</version> -->
-      <!--   <executions> -->
-      <!--     <execution> -->
-      <!--       <goals> -->
-      <!--         <goal>compile</goal> -->
-      <!--         <goal>testCompile</goal> -->
-      <!--       </goals> -->
-      <!--     </execution> -->
-      <!--   </executions> -->
-      <!--   <configuration> -->
-      <!--     <args> -->
-      <!--       <arg>-unchecked</arg> -->
-      <!--       <arg>-deprecation</arg> -->
-      <!--     </args> -->
-      <!--   </configuration> -->
-      <!-- </plugin> -->
-      <!-- <plugin> -->
-      <!--   <groupId>org.dstovall</groupId> -->
-      <!--   <artifactId>onejar-maven-plugin</artifactId> -->
-      <!--   <version>1.4.4</version> -->
-      <!--   <executions> -->
-      <!--     <execution> -->
-      <!--       <goals> -->
-      <!--         <goal>one-jar</goal> -->
-      <!--       </goals> -->
-      <!--     </execution> -->
-      <!--   </executions> -->
-      <!-- </plugin> -->
     </plugins>
   </build>
 
@@ -208,13 +177,6 @@
       <url>http://conjars.org/repo</url>
     </repository>
   </repositories>
-
-  <!-- <pluginRepositories> -->
-  <!--   <pluginRepository> -->
-  <!--     <id>onejar-maven-plugin.googlecode.com</id> -->
-  <!--     <url>http://onejar-maven-plugin.googlecode.com/svn/mavenrepo</url> -->
-  <!--   </pluginRepository> -->
-  <!-- </pluginRepositories> -->
 
   <scm>
     <connection>scm:git:git@github.com:kijiproject/kiji-chopsticks.git</connection>
