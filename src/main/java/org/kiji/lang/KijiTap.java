@@ -109,7 +109,12 @@ public class KijiTap
           "tmpjars",
           StringUtils.join(findKijiJars(conf), ","));
     } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
+      throw new RuntimeException(
+          "Chopsticks was unable to find dependency jars for Kiji. If you are using KijiBento "
+          + "make sure you have run the 'kiji-env.sh' script. If not, make sure your KijiSchema "
+          + "and KijiMapReduce installations have 'lib' directories containing their "
+          + "dependency jars.",
+          ioe);
     }
 
     super.sourceConfInit(process, conf);
@@ -138,7 +143,12 @@ public class KijiTap
           "tmpjars",
           StringUtils.join(findKijiJars(conf), ","));
     } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
+      throw new RuntimeException(
+          "Chopsticks was unable to find dependency jars for Kiji. If you are using KijiBento "
+          + "make sure you have run the 'kiji-env.sh' script. If not, make sure your KijiSchema "
+          + "and KijiMapReduce installations have 'lib' directories containing their "
+          + "dependency jars.",
+          ioe);
     }
 
     super.sinkConfInit(process, conf);
