@@ -21,9 +21,9 @@ package org.kiji.lang;
 
 import java.io.Serializable;
 
-import org.kiji.schema.filter.KijiColumnFilter;
-
 import com.google.common.base.Objects;
+
+import org.kiji.schema.filter.KijiColumnFilter;
 
 /**
  * Represents a column in a Kiji table.
@@ -80,6 +80,9 @@ public final class Column implements Serializable {
     return Objects.hashCode(mName, mInputOptions);
   }
 
+  /**
+   * Provides the ability to specify InputOptions for a column.
+   */
   public static final class InputOptions implements Serializable {
     /** Maximum number of versions of a cell to return. */
     private final int mMaxVersions;

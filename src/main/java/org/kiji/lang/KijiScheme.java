@@ -34,7 +34,6 @@ import cascading.tuple.TupleEntry;
 import com.google.common.base.Objects;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
@@ -56,13 +55,13 @@ import org.kiji.schema.KijiURI;
  * {@link #source(cascading.flow.FlowProcess, cascading.scheme.SourceCall)}) and writing output
  * data from a Cascading flow to a Kiji table
  * (see {@link #sink(cascading.flow.FlowProcess, cascading.scheme.SinkCall)}).
+ *
+ * Note: Warnings about a missing serialVersionUID are ignored here. When KijiScheme is serialized,
+ * the result is not persisted anywhere making serialVersionUID unnecessary.
  */
+@SuppressWarnings({ "rawtypes", "serial" })
 public class KijiScheme
-    extends Scheme<JobConf, RecordReader<KijiKey, KijiValue>,
-        OutputCollector<NullWritable, NullWritable>, KijiValue, KijiTableWriter> {
-  /** Schemes must be serialized as part of a Cascading job. */
-  private static final long serialVersionUID = 1L;
-
+    extends Scheme<JobConf, RecordReader, OutputCollector, KijiValue, KijiTableWriter> {
   /** Field name containing a row's {@link EntityId}. */
   public static final String ENTITYID_FIELD = "entityid";
   /** Seperator used when using symbols to address columns. */
@@ -104,11 +103,18 @@ public class KijiScheme
     setSinkFields(Fields.join(fields));
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Sets any configuration options that are required for running a MapReduce job
+   * that reads from a Kiji table. This method gets called on the client machine
+   * during job setup.
+   *
+   * @param process Current Cascading flow being built.
+   * @param tap The tap that is being used with this scheme.
+   * @param conf The job configuration object.
+   */
   @Override
   public void sourceConfInit(FlowProcess<JobConf> process,
-      Tap<JobConf, RecordReader<KijiKey, KijiValue>,
-      OutputCollector<NullWritable, NullWritable>> tap, JobConf conf) {
+      Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
     // Write all the required values to the job's configuration object.
     conf.setInputFormat(KijiInputFormat.class);
     final String serializedRequest =
@@ -116,17 +122,32 @@ public class KijiScheme
     conf.set(KijiConfKeys.KIJI_INPUT_DATA_REQUEST, serializedRequest);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Sets up any resources required for the MapReduce job. This method is called
+   * on the cluster.
+   *
+   * @param process Current Cascading flow being run.
+   * @param sourceCall Object containing the context for this source.
+   */
   @Override
-  public void sourcePrepare(FlowProcess<JobConf> flowProcess,
-      SourceCall<KijiValue, RecordReader<KijiKey, KijiValue>> sourceCall) {
+  public void sourcePrepare(FlowProcess<JobConf> process,
+      SourceCall<KijiValue, RecordReader> sourceCall) {
     sourceCall.setContext((KijiValue) sourceCall.getInput().createValue());
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Reads and converts a row from a Kiji table to a Cascading Tuple. This method
+   * is called once for each row on the cluster.
+   *
+   * @param process Current Cascading flow being run.
+   * @param sourceCall Object containing the context for this source.
+   * @throws IOException If there is an error while reading the row from Kiji.
+   * @return True always. This is used to indicate if there are more rows to read.
+   */
+  @SuppressWarnings("unchecked")
   @Override
-  public boolean source(FlowProcess<JobConf> flowProcess,
-      SourceCall<KijiValue, RecordReader<KijiKey, KijiValue>> sourceCall) throws IOException {
+  public boolean source(FlowProcess<JobConf> process,
+      SourceCall<KijiValue, RecordReader> sourceCall) throws IOException {
     // Get the current key/value pair.
     final KijiValue value = sourceCall.getContext();
     if (!sourceCall.getInput().next(null, value)) {
@@ -139,27 +160,46 @@ public class KijiScheme
     return true;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Cleans up any resources used during the MapReduce job. This method is called
+   * on the cluster.
+   *
+   * @param process Current Cascading flow being run.
+   * @param sourceCall Object containing the context for this source.
+   */
   @Override
-  public void sourceCleanup(FlowProcess<JobConf> flowProcess,
-      SourceCall<KijiValue, RecordReader<KijiKey, KijiValue>> sourceCall) {
+  public void sourceCleanup(FlowProcess<JobConf> process,
+      SourceCall<KijiValue, RecordReader> sourceCall) {
     sourceCall.setContext(null);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Sets any configuration options that are required for running a MapReduce job
+   * that writes to a Kiji table. This method gets called on the client machine
+   * during job setup.
+   *
+   * @param process Current Cascading flow being built.
+   * @param tap The tap that is being used with this scheme.
+   * @param conf The job configuration object.
+   */
   @Override
   public void sinkConfInit(FlowProcess<JobConf> process,
-      Tap<JobConf, RecordReader<KijiKey, KijiValue>,
-      OutputCollector<NullWritable, NullWritable>> tap, JobConf conf) {
+      Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
   }
 
-  /** {@inheritDoc */
+  /**
+   * Sets up any resources required for the MapReduce job. This method is called
+   * on the cluster.
+   *
+   * @param process Current Cascading flow being run.
+   * @param sinkCall Object containing the context for this source.
+   * @throws IOException If there is an error opening connections to Kiji.
+   */
   @Override
-  public void sinkPrepare(FlowProcess<JobConf> flowProcess,
-      SinkCall<KijiTableWriter, OutputCollector<NullWritable, NullWritable>> sinkCall)
-      throws IOException {
+  public void sinkPrepare(FlowProcess<JobConf> process,
+      SinkCall<KijiTableWriter, OutputCollector> sinkCall) throws IOException {
     // Open a table writer.
-    final String uriString = flowProcess.getConfigCopy().get(KijiConfKeys.KIJI_OUTPUT_TABLE_URI);
+    final String uriString = process.getConfigCopy().get(KijiConfKeys.KIJI_OUTPUT_TABLE_URI);
     final KijiURI uri = KijiURI.newBuilder(uriString).build();
     final Kiji kiji = Kiji.Factory.open(uri);
     final KijiTable table = kiji.openTable(uri.getTable());
@@ -171,11 +211,17 @@ public class KijiScheme
     sinkCall.setContext(writer);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Converts and writes a Cascading Tuple to a Kiji table. This method is called once
+   * for each row on the cluster.
+   *
+   * @param process Current Cascading flow being run.
+   * @param sinkCall Object containing the context for this source.
+   * @throws IOException If there is an error while reading the row from Kiji.
+   */
   @Override
-  public void sink(FlowProcess<JobConf> flowProcess,
-      SinkCall<KijiTableWriter, OutputCollector<NullWritable, NullWritable>> sinkCall)
-      throws IOException {
+  public void sink(FlowProcess<JobConf> process,
+      SinkCall<KijiTableWriter, OutputCollector> sinkCall) throws IOException {
     // Retrieve writer from the scheme's context.
     final KijiTableWriter writer = sinkCall.getContext();
 
@@ -184,11 +230,17 @@ public class KijiScheme
     putTuple(mColumns, getSinkFields(), output, writer);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Cleans up any resources used during the MapReduce job. This method is called
+   * on the cluster.
+   *
+   * @param process Current Cascading flow being run.
+   * @param sinkCall Object containing the context for this source.
+   * @throws IOException If there is an error closing connections to Kiji.
+   */
   @Override
-  public void sinkCleanup(FlowProcess<JobConf> flowProcess,
-      SinkCall<KijiTableWriter, OutputCollector<NullWritable, NullWritable>> sinkCall)
-      throws IOException {
+  public void sinkCleanup(FlowProcess<JobConf> process,
+      SinkCall<KijiTableWriter, OutputCollector> sinkCall) throws IOException {
     sinkCall.getContext().close();
     sinkCall.setContext(null);
   }
@@ -200,6 +252,7 @@ public class KijiScheme
    * @param fields Field names of desired tuple elements.
    * @param row The row data.
    * @throws IOException if there is an error.
+   * @return A tuple containing the values contained in the specified row.
    */
   public static Tuple rowToTuple(Map<String, Column> columns, Fields fields, KijiRowData row)
       throws IOException {

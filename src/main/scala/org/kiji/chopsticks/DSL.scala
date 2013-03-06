@@ -30,7 +30,6 @@ object DSL {
       tableURI: String) (
         /** Columns to read from. */
         columns: (String, Symbol)*)
-    // : KijiSource = new KijiSource(tableURI, columns.toSeq)
     : KijiSource = {
     val columnMap = columns
         .map { case (col, field) => (field, col) }
@@ -57,7 +56,6 @@ object DSL {
       tableURI: String) (
         /** Columns to write to. */
         columns: (Symbol, String)*)
-    // : KijiSource = new KijiSource(tableURI, columns.toSeq)
     : KijiSource = {
     val columnMap = columns
         .toMap

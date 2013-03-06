@@ -49,6 +49,8 @@ class KijiSource(
     val columns: Map[Symbol, Column])
     extends Source {
 
+  type HadoopScheme = Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]
+
   /** Convert scala columns definition into its corresponding java variety. */
   private def convertColumnMap(columnMap: Map[Symbol, Column]): java.util.Map[String, Column] = {
     val wrapped = columnMap
@@ -69,8 +71,8 @@ class KijiSource(
    * Creates a Scheme that writes to/reads from a Kiji table for usage with
    * the hadoop runner.
    */
-  override def hdfsScheme = kijiScheme
-      .asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
+  override def hdfsScheme: HadoopScheme = kijiScheme
+      .asInstanceOf[HadoopScheme]
 
   /**
    * Create a connection to the physical data source (also known as a Tap in Cascading)
