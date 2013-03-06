@@ -61,7 +61,6 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("rawtypes")
 public class KijiScheme
     extends Scheme<JobConf, RecordReader, OutputCollector, KijiValue, KijiTableWriter> {
-  private static final Logger LOG = LoggerFactory.getLogger(KijiScheme.class);
   /** Schemes must be serialized as part of a Cascading job. */
   private static final long serialVersionUID = 1L;
 
@@ -94,7 +93,6 @@ public class KijiScheme
       final KijiColumnName columnName = new KijiColumnName(entry.getValue().name());
       final Column.InputOptions inputOptions = entry.getValue().inputOptions();
 
-      // requestBuilder.addColumns(
       requestBuilder.newColumnsDef()
           .withMaxVersions(inputOptions.maxVersions())
           .withFilter(inputOptions.filter())
