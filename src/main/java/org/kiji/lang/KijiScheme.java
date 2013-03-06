@@ -34,6 +34,7 @@ import cascading.tuple.TupleEntry;
 import com.google.common.base.Objects;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
@@ -48,8 +49,6 @@ import org.kiji.schema.KijiRowData;
 import org.kiji.schema.KijiTable;
 import org.kiji.schema.KijiTableWriter;
 import org.kiji.schema.KijiURI;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A scheme that can source and sink data from a Kiji table. This scheme is responsible for
@@ -58,9 +57,9 @@ import org.slf4j.LoggerFactory;
  * data from a Cascading flow to a Kiji table
  * (see {@link #sink(cascading.flow.FlowProcess, cascading.scheme.SinkCall)}).
  */
-@SuppressWarnings("rawtypes")
 public class KijiScheme
-    extends Scheme<JobConf, RecordReader, OutputCollector, KijiValue, KijiTableWriter> {
+    extends Scheme<JobConf, RecordReader<KijiKey, KijiValue>,
+        OutputCollector<NullWritable, NullWritable>, KijiValue, KijiTableWriter> {
   /** Schemes must be serialized as part of a Cascading job. */
   private static final long serialVersionUID = 1L;
 
@@ -71,10 +70,7 @@ public class KijiScheme
 
   /** A data request used when this scheme reads from a Kiji table. */
   private final KijiDataRequest mRequest;
-  /**
-   * A mapping from Cascading tuple field names to Kiji column names,
-   * used when outputting to a Kiji table.
-   */
+  /** A mapping from Cascading tuple field names to Kiji column names. */
   private final Map<String, Column> mColumns;
 
   /**
@@ -111,7 +107,8 @@ public class KijiScheme
   /** {@inheritDoc} */
   @Override
   public void sourceConfInit(FlowProcess<JobConf> process,
-      Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
+      Tap<JobConf, RecordReader<KijiKey, KijiValue>,
+      OutputCollector<NullWritable, NullWritable>> tap, JobConf conf) {
     // Write all the required values to the job's configuration object.
     conf.setInputFormat(KijiInputFormat.class);
     final String serializedRequest =
@@ -122,15 +119,14 @@ public class KijiScheme
   /** {@inheritDoc} */
   @Override
   public void sourcePrepare(FlowProcess<JobConf> flowProcess,
-      SourceCall<KijiValue, RecordReader> sourceCall) {
+      SourceCall<KijiValue, RecordReader<KijiKey, KijiValue>> sourceCall) {
     sourceCall.setContext((KijiValue) sourceCall.getInput().createValue());
   }
 
   /** {@inheritDoc} */
-  @SuppressWarnings("unchecked")
   @Override
   public boolean source(FlowProcess<JobConf> flowProcess,
-      SourceCall<KijiValue, RecordReader> sourceCall) throws IOException {
+      SourceCall<KijiValue, RecordReader<KijiKey, KijiValue>> sourceCall) throws IOException {
     // Get the current key/value pair.
     final KijiValue value = sourceCall.getContext();
     if (!sourceCall.getInput().next(null, value)) {
@@ -146,20 +142,22 @@ public class KijiScheme
   /** {@inheritDoc} */
   @Override
   public void sourceCleanup(FlowProcess<JobConf> flowProcess,
-      SourceCall<KijiValue, RecordReader> sourceCall) {
+      SourceCall<KijiValue, RecordReader<KijiKey, KijiValue>> sourceCall) {
     sourceCall.setContext(null);
   }
 
   /** {@inheritDoc} */
   @Override
   public void sinkConfInit(FlowProcess<JobConf> process,
-      Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
+      Tap<JobConf, RecordReader<KijiKey, KijiValue>,
+      OutputCollector<NullWritable, NullWritable>> tap, JobConf conf) {
   }
 
   /** {@inheritDoc */
   @Override
   public void sinkPrepare(FlowProcess<JobConf> flowProcess,
-      SinkCall<KijiTableWriter, OutputCollector> sinkCall) throws IOException {
+      SinkCall<KijiTableWriter, OutputCollector<NullWritable, NullWritable>> sinkCall)
+      throws IOException {
     // Open a table writer.
     final String uriString = flowProcess.getConfigCopy().get(KijiConfKeys.KIJI_OUTPUT_TABLE_URI);
     final KijiURI uri = KijiURI.newBuilder(uriString).build();
@@ -176,7 +174,8 @@ public class KijiScheme
   /** {@inheritDoc} */
   @Override
   public void sink(FlowProcess<JobConf> flowProcess,
-      SinkCall<KijiTableWriter, OutputCollector> sinkCall) throws IOException {
+      SinkCall<KijiTableWriter, OutputCollector<NullWritable, NullWritable>> sinkCall)
+      throws IOException {
     // Retrieve writer from the scheme's context.
     final KijiTableWriter writer = sinkCall.getContext();
 
@@ -188,7 +187,8 @@ public class KijiScheme
   /** {@inheritDoc} */
   @Override
   public void sinkCleanup(FlowProcess<JobConf> flowProcess,
-      SinkCall<KijiTableWriter, OutputCollector> sinkCall) throws IOException {
+      SinkCall<KijiTableWriter, OutputCollector<NullWritable, NullWritable>> sinkCall)
+      throws IOException {
     sinkCall.getContext().close();
     sinkCall.setContext(null);
   }
@@ -204,7 +204,7 @@ public class KijiScheme
   public static Tuple rowToTuple(Map<String, Column> columns, Fields fields, KijiRowData row)
       throws IOException {
     final Tuple result = new Tuple();
-    final Iterator iterator = fields.iterator();
+    final Iterator<?> iterator = fields.iterator();
 
     result.add(row.getEntityId());
     iterator.next();
@@ -233,7 +233,7 @@ public class KijiScheme
   public static void putTuple(Map<String, Column> columns, Fields fields, TupleEntry output,
       KijiTableWriter writer) throws IOException {
     final EntityId entityId = (EntityId) output.getObject(ENTITYID_FIELD);
-    final Iterator iterator = fields.iterator();
+    final Iterator<?> iterator = fields.iterator();
     iterator.next();
 
     // Store the retrieved columns in the tuple.

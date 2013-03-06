@@ -73,13 +73,6 @@ class KijiSource(
       .asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
 
   /**
-   * Creates a local Scheme that writes to/reads from a Kiji table for usage
-   * with the local runner.
-   */
-  override def localScheme = localKijiScheme
-      .asInstanceOf[LocalScheme]
-
-  /**
    * Create a connection to the physical data source (also known as a Tap in Cascading)
    * which, in this case, is a [[org.kiji.schema.KijiTable]].
    */
