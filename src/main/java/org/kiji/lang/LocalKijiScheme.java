@@ -50,15 +50,22 @@ import org.kiji.schema.KijiTableWriter;
 import org.kiji.schema.KijiURI;
 
 /**
- * A scheme that can source and sink data from a Kiji table. This scheme is responsible for
- * converting rows from a Kiji table that are input to a Cascading flow into Cascading tuples (see
- * {@link #source(cascading.flow.FlowProcess, cascading.scheme.SourceCall)}) and writing output
- * data from a Cascading flow to a Kiji table
- * (see {@link #sink(cascading.flow.FlowProcess, cascading.scheme.SinkCall)}). This scheme is meant
- * to be used with {@link LocalKijiTap} and Cascading's local job runner.
+ * A scheme that can source and sink data from a Kiji table.
  *
- * Note: Warnings about a missing serialVersionUID are ignored here. When KijiScheme is serialized,
- * the result is not persisted anywhere making serialVersionUID unnecessary.
+ * <p>
+ *   This scheme is responsible for converting rows from a Kiji table that are input to a
+ *   Cascading flow into Cascading tuples (see
+ *   {@link #source(cascading.flow.FlowProcess, cascading.scheme.SourceCall)}) and writing output
+ *   data from a Cascading flow to a Kiji table
+ *   (see {@link #sink(cascading.flow.FlowProcess, cascading.scheme.SinkCall)}). This scheme is meant
+ *   to be used with {@link LocalKijiTap} and Cascading's local job runner. Jobs run with Cascading's
+ *   local job runner execute on your local machine instead of a cluster. This can be helpful for
+ *   testing or quick jobs.
+ * </p>
+ * <p>
+ *   Note: Warnings about a missing serialVersionUID are ignored here. When KijiScheme is serialized,
+ *   the result is not persisted anywhere making serialVersionUID unnecessary.
+ * </p>
  */
 @SuppressWarnings("serial")
 public class LocalKijiScheme
@@ -76,7 +83,7 @@ public class LocalKijiScheme
   /**
    * Constructs a new Kiji scheme for usage with Cascading/Scalding's local mode.
    *
-   * @param columns A mapping from field names to requested columns.
+   * @param columns a mapping from field names to requested columns.
    */
   public LocalKijiScheme(Map<String, Column> columns) {
     final Fields[] fields = new Fields[columns.size() + 1];
@@ -115,11 +122,12 @@ public class LocalKijiScheme
   @Override
   public void sourceConfInit(FlowProcess<Properties> process,
       Tap<Properties, InputStream, OutputStream> tap, Properties conf) {
-    // No-op.
+    // No-op. Setting options in a java Properties object is not going to help us read from
+    // a Kiji table.
   }
 
   /**
-   * Sets up any resources required for the local job.
+   * Sets up any resources required to read from a Kiji table.
    *
    * @param process Current Cascading flow being run.
    * @param sourceCall Object containing the context for this source.
@@ -153,7 +161,8 @@ public class LocalKijiScheme
    * @param process Current Cascading flow being run.
    * @param sourceCall Object containing the context for this source.
    * @throws IOException If there is an error while reading the row from Kiji.
-   * @return True if there are more rows to read.
+   * @return <code>true</code> if another row was read and it was converted to a tuple,
+   *     <code>false</code> if there were no more rows to read.
    */
   @Override
   public boolean source(FlowProcess<Properties> process,
@@ -171,7 +180,7 @@ public class LocalKijiScheme
   }
 
   /**
-   * Cleans up any resources used during the local job.
+   * Cleans up any resources used to read from a Kiji table.
    *
    * @param process Current Cascading flow being run.
    * @param sourceCall Object containing the context for this source.
@@ -196,11 +205,12 @@ public class LocalKijiScheme
   @Override
   public void sinkConfInit(FlowProcess<Properties> process,
       Tap<Properties, InputStream, OutputStream> tap, Properties conf) {
-    // No-op.
+    // No-op. Setting options in a java Properties object is not going to help us write to
+    // a Kiji table.
   }
 
   /**
-   * Sets up any resources required for the local job.
+   * Sets up any resources required to write to a Kiji table.
    *
    * @param process Current Cascading flow being run.
    * @param sinkCall Object containing the context for this source.
@@ -244,7 +254,7 @@ public class LocalKijiScheme
   }
 
   /**
-   * Cleans up any resources used during the local job.
+   * Cleans up any resources used to write to a Kiji table.
    *
    * @param process Current Cascading flow being run.
    * @param sinkCall Object containing the context for this source.

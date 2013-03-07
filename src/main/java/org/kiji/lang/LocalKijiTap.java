@@ -39,11 +39,12 @@ import org.kiji.schema.Kiji;
 import org.kiji.schema.KijiURI;
 
 /**
- * A {@link Tap} for reading data from a Kiji table. This tap is responsible for configuring a
- * local job to read from a Kiji table.
- *
- * Note: Warnings about a missing serialVersionUID are ignored here. When KijiTap is serialized,
- * the result is not persisted anywhere making serialVersionUID unnecessary.
+ * A {@link Tap} for reading data from a Kiji table.
+ * <p>This tap is responsible for configuring a local job to read from a Kiji table.</p>
+ * <p>
+ *   Note: Warnings about a missing serialVersionUID are ignored here. When KijiTap is serialized,
+ *   the result is not persisted anywhere making serialVersionUID unnecessary.
+ * </p>
  */
 @SuppressWarnings("serial")
 public class LocalKijiTap
@@ -112,7 +113,7 @@ public class LocalKijiTap
       InputStream input) throws IOException {
     InputStream in = input;
     if (null == in) {
-      in = new ByteArrayInputStream(new byte[]{ });
+      in = new ByteArrayInputStream(new byte[0]);
     }
     return new TupleEntrySchemeIterator<Properties, InputStream>(
         process,

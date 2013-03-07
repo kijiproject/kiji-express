@@ -86,7 +86,7 @@ final class KijiSource(
    * Creates a Scheme that writes to/reads from a Kiji table for usage with
    * the local runner.
    */
-  override def localScheme: LocalScheme = kijiScheme
+  override def localScheme: LocalScheme = localKijiScheme
       .asInstanceOf[LocalScheme]
 
   /**

@@ -189,7 +189,7 @@ public final class KijiScheme
   @Override
   public void sinkConfInit(FlowProcess<JobConf> process,
       Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
-    // No-op.
+    // No-op since no configuration parameters need to be set to encode data for Kiji.
   }
 
   /**
