@@ -21,7 +21,6 @@ package org.kiji.lang
 
 import org.apache.hadoop.hbase.client.Result
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
 
 import org.kiji.schema.KijiDataRequest
 import org.kiji.schema.KijiSchemaTable
@@ -30,7 +29,7 @@ import org.kiji.schema.impl.HBaseKijiRowData
 import org.kiji.schema.impl.HBaseKijiTableReader
 import org.kiji.schema.layout.KijiTableLayout
 
-class KijiValueSpec extends FunSuite with ShouldMatchers {
+class KijiValueSuite extends FunSuite {
   val kijiURI = KijiURI.newBuilder("kiji://.env/default").build();
   val tableName = "mTable"
 
@@ -40,6 +39,7 @@ class KijiValueSpec extends FunSuite with ShouldMatchers {
     val rowData = new HBaseKijiRowData(null, dataRequest, null, null, result, null)
     val testValue = new KijiValue()
     testValue.set(rowData)
-    testValue.get() should equal (rowData)
+
+    assert(rowData == testValue.get())
   }
 }

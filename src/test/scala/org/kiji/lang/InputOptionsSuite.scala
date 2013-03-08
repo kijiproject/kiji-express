@@ -20,12 +20,11 @@
 package org.kiji.lang
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
 
 import org.kiji.lang.Column.InputOptions
 import org.kiji.schema.filter.RegexQualifierColumnFilter
 
-class InputOptionsSpec extends FunSuite with ShouldMatchers {
+class InputOptionsSuite extends FunSuite {
   // TODO(CHOP-37): Test with different filters once the new method of specifying filters
   // correctly implements the .equals() and hashCode() methods.
   // Should be able to change the following line to:
@@ -35,17 +34,17 @@ class InputOptionsSpec extends FunSuite with ShouldMatchers {
   val opts = new InputOptions(maxVersions, filter)
 
   test("maxVersions is the same as constructed with.") {
-    opts.maxVersions should equal (maxVersions)
+    assert(maxVersions == opts.maxVersions)
   }
 
   test("inputOptions is the same as constructed with.") {
-    opts.filter should equal (filter)
+    assert(filter == opts.filter)
   }
 
   test("InputOptions with the same maxVersions & filter are equal and hash to the same value.") {
     val opts2 = new InputOptions(maxVersions, filter)
 
-    opts should equal (opts2)
-    opts.hashCode should equal (opts2.hashCode)
+    assert(opts2 == opts)
+    assert(opts2.hashCode == opts.hashCode)
   }
 }

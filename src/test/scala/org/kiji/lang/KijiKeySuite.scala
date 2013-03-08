@@ -20,20 +20,20 @@
 package org.kiji.lang
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
 
 import org.kiji.schema.EntityId
 import org.kiji.schema.EntityIdFactory
 import org.kiji.schema.avro.RowKeyFormat
 import org.kiji.schema.avro.RowKeyEncoding
 
-class KijiKeySpec extends FunSuite with ShouldMatchers {
+class KijiKeySuite extends FunSuite {
   test("KijiKey should get the same EntityId you put in.") {
     val entityIdFactory = EntityIdFactory.getFactory(
       RowKeyFormat.newBuilder().setEncoding(RowKeyEncoding.RAW).build())
     val testId = entityIdFactory.getEntityId("foob")
     val testKey = new KijiKey()
     testKey.set(testId)
-    testKey.get() should equal (testId)
+
+    assert(testId == testKey.get())
   }
 }

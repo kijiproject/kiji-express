@@ -21,21 +21,21 @@ package org.kiji.lang
 
 import org.apache.hadoop.hbase.mapreduce.TableSplit
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
 
-class KijiTableSplitSpec extends FunSuite with ShouldMatchers {
-  val hTableSplit = new TableSplit("name".getBytes, "startrow".getBytes, "endrow".getBytes, "location")
+class KijiTableSplitSuite extends FunSuite {
+  val hTableSplit =
+    new TableSplit("name".getBytes, "startrow".getBytes, "endrow".getBytes, "location")
   val kTableSplit = new KijiTableSplit(hTableSplit)
 
   test("KijiTableSplit should have the same startrow as the hTableSplit.") {
-    hTableSplit.getStartRow.toSeq should equal (kTableSplit.getStartRow.toSeq)
+    assert(hTableSplit.getStartRow.toSeq == kTableSplit.getStartRow.toSeq)
   }
 
   test("KijiTableSplit should have the same endrow as the hTableSplit.") {
-    hTableSplit.getEndRow.toSeq should equal (kTableSplit.getEndRow.toSeq)
+    assert(hTableSplit.getEndRow.toSeq ==  kTableSplit.getEndRow.toSeq)
   }
 
   test("KijiTableSplit should have the same locations as the hTableSplit.") {
-    hTableSplit.getLocations.toSeq should equal (kTableSplit.getLocations.toSeq)
+    assert(hTableSplit.getLocations.toSeq == kTableSplit.getLocations.toSeq)
   }
 }

@@ -22,29 +22,31 @@ package org.kiji.chopsticks
 import scala.collection.JavaConversions.mapAsJavaMap
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
 
 import org.kiji.chopsticks.DSL._
 import org.kiji.lang.KijiScheme
 
-class DSLSpec extends FunSuite with ShouldMatchers {
+class DSLSuite extends FunSuite {
   val tableURI = "kiji://.env/default/table"
 
   test("DSL should let you create inputs and outputs with no mappings.") {
     val input: KijiSource = KijiInput(tableURI)()
     val output: KijiSource = KijiOutput(tableURI)()
+
+    assert(input.columns.isEmpty())
+    assert(output.columns.isEmpty())
   }
 
   test("DSL should let you create KijiSources as inputs with default options.") {
     val input: KijiSource = KijiInput(tableURI)("info:word" -> 'word)
     val expectedScheme: KijiScheme = new KijiScheme(Map("word" -> Column("info:word")))
 
-    input.kijiScheme should equal (expectedScheme)
+    assert(expectedScheme == input.kijiScheme)
   }
 
   test("DSL should let you specify timerange for KijiInput.") {
     pending
-    // TODO(CHOP-36):
+    // TODO(CHOP-36): After CHOP-36, the test should look something like this:
     // val input = KijiInput(tableURI, timeRange=(0L,40L))("info:word" -> 'word)
   }
 
@@ -53,7 +55,7 @@ class DSLSpec extends FunSuite with ShouldMatchers {
     val expectedScheme: KijiScheme = new KijiScheme(
       Map("word" -> Column("info:word"), "title" -> Column("info:title")))
 
-    input.kijiScheme should equal (expectedScheme)
+    assert(expectedScheme == input.kijiScheme)
   }
 
   test("DSL should let you specify inputOptions for a column.") {
@@ -76,6 +78,6 @@ class DSLSpec extends FunSuite with ShouldMatchers {
     val output: KijiSource = KijiOutput(tableURI)('words -> "info:words")
     val expectedScheme: KijiScheme = new KijiScheme(Map("words" -> Column("info:words")))
 
-    output.kijiScheme should equal (expectedScheme)
+    assert(expectedScheme == output.kijiScheme)
   }
 }
