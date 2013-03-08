@@ -21,11 +21,11 @@ package org.kiji.chopsticks
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Buffer
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.HashMap
 import java.util.NavigableMap
 import java.util.Properties
-import java.io.InputStream
-import java.io.OutputStream
 
 import cascading.flow.FlowProcess
 import cascading.scheme.ConcreteCall

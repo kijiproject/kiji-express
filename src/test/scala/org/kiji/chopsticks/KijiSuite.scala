@@ -22,7 +22,7 @@ package org.kiji.chopsticks
 import java.util.NavigableMap
 import java.util.TreeMap
 
-import com.twitter.scalding._
+import com.twitter.scalding.TupleConversions
 import org.scalatest.FunSuite
 
 import org.kiji.chopsticks.DSL._
@@ -36,7 +36,7 @@ import org.kiji.schema.layout.KijiTableLayout
 import org.kiji.schema.layout.KijiTableLayouts
 import org.kiji.schema.util.InstanceBuilder
 
-/** Contains convience methods for writing tests that use Kiji. */
+/** Contains convenience methods for writing tests that use Kiji. */
 trait KijiSuite
     extends FunSuite
     with TupleConversions {

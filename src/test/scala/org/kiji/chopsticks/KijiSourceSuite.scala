@@ -57,8 +57,8 @@ class KijiSourceSuite
           val outMap = outputBuffer.toMap
 
           // Validate that the output is as expected.
-          assert(outMap("hello") === 3)
-          assert(outMap("world") === 1)
+          assert(3 === outMap("hello"))
+          assert(1 === outMap("world"))
         }
         // Run the test job.
         .run
@@ -87,7 +87,7 @@ class KijiSourceSuite
         .sink[(EntityId, NavigableMap[Long, Utf8])](KijiOutput(uri)('word -> "family:column")) {
             outputBuffer: Buffer[(EntityId, NavigableMap[Long, Utf8])] =>
 
-          assert(outputBuffer.size === 10)
+          assert(10 === outputBuffer.size)
 
           // Perform a non-distributed word count.
           val wordCounts: (Int, Int) = outputBuffer
@@ -111,7 +111,7 @@ class KijiSourceSuite
               }
 
           // Make sure that the counts are as expected.
-          assert(wordCounts === (6, 4))
+          assert((6, 4) === wordCounts)
         }
         .run
         .finish
