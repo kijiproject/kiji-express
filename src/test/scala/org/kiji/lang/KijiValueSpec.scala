@@ -21,6 +21,7 @@ package org.kiji.lang
 
 import org.apache.hadoop.hbase.client.Result
 import org.scalatest.FunSuite
+import org.scalatest.matchers.ShouldMatchers
 
 import org.kiji.schema.KijiDataRequest
 import org.kiji.schema.KijiSchemaTable
@@ -29,17 +30,16 @@ import org.kiji.schema.impl.HBaseKijiRowData
 import org.kiji.schema.impl.HBaseKijiTableReader
 import org.kiji.schema.layout.KijiTableLayout
 
-class KijiValueSpec extends FunSuite {
+class KijiValueSpec extends FunSuite with ShouldMatchers {
   val kijiURI = KijiURI.newBuilder("kiji://.env/default").build();
   val tableName = "mTable"
 
   test("KijiValue should get the same RowData you put in.") {
     val dataRequest = KijiDataRequest.create("columnfamily")
     val result = new Result()
-    // TODO: Build an actual HBaseKijiRowData, or learn to mock.
     val rowData = new HBaseKijiRowData(null, dataRequest, null, null, result, null)
     val testValue = new KijiValue()
     testValue.set(rowData)
-    assert(testValue.get() == rowData)
+    testValue.get() should equal (rowData)
   }
 }

@@ -25,27 +25,27 @@ import org.scalatest.matchers.ShouldMatchers
 import org.kiji.lang.Column.InputOptions
 import org.kiji.schema.filter.RegexQualifierColumnFilter
 
-class ColumnSpec extends FunSuite with ShouldMatchers {
-  // TODO(CHOP-37): Test with non-null filter once the new method of specifying filters
+class InputOptionsSpec extends FunSuite with ShouldMatchers {
+  // TODO(CHOP-37): Test with different filters once the new method of specifying filters
   // correctly implements the .equals() and hashCode() methods.
   // Should be able to change the following line to:
   // def filter = new RegexQualifierColumnFilter(".*")
   val filter = new RegexQualifierColumnFilter(".*")
-  def opts: InputOptions = new InputOptions(1, filter)
-  val colName = "myname"
+  val maxVersions = 2
+  val opts = new InputOptions(maxVersions, filter)
 
-  test("Fields of the column are the same as those it is constructed with.") {
-    val col: Column = new Column(colName, opts)
-
-    col.name should equal (colName)
-    col.inputOptions should equal (opts)
+  test("maxVersions is the same as constructed with.") {
+    opts.maxVersions should equal (maxVersions)
   }
 
-  test("Two columns with the same parameters are equal and hash to the same value.") {
-    val col1: Column = new Column(colName, opts)
-    val col2: Column = new Column(colName, opts)
+  test("inputOptions is the same as constructed with.") {
+    opts.filter should equal (filter)
+  }
 
-    col1 should equal (col2)
-    col1.hashCode() should equal (col2.hashCode())
+  test("InputOptions with the same maxVersions & filter are equal and hash to the same value.") {
+    val opts2 = new InputOptions(maxVersions, filter)
+
+    opts should equal (opts2)
+    opts.hashCode should equal (opts2.hashCode)
   }
 }

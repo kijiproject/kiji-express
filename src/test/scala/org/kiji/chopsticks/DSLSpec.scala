@@ -19,25 +19,41 @@
 
 package org.kiji.chopsticks
 
+import scala.collection.JavaConversions.mapAsJavaMap
+
 import org.scalatest.FunSuite
+import org.scalatest.matchers.ShouldMatchers
 
 import org.kiji.chopsticks.DSL._
+import org.kiji.lang.KijiScheme
 
-class DSLSpec extends FunSuite {
+class DSLSpec extends FunSuite with ShouldMatchers {
   val tableURI = "kiji://.env/default/table"
+
+  test("DSL should let you create inputs and outputs with no mappings.") {
+    val input: KijiSource = KijiInput(tableURI)()
+    val output: KijiSource = KijiOutput(tableURI)()
+  }
 
   test("DSL should let you create KijiSources as inputs with default options.") {
     val input: KijiSource = KijiInput(tableURI)("info:word" -> 'word)
+    val expectedScheme: KijiScheme = new KijiScheme(Map("word" -> Column("info:word")))
+
+    input.kijiScheme should equal (expectedScheme)
   }
 
-  ignore("DSL should let you specify timerange for KijiInput.") {
+  test("DSL should let you specify timerange for KijiInput.") {
     pending
     // TODO(CHOP-36):
     // val input = KijiInput(tableURI, timeRange=(0L,40L))("info:word" -> 'word)
   }
 
   test("DSL should let you create KijiSources with multiple columns.") {
-    val input: KijiSource = KijiInput(tableURI)("info:word" -> 'word, "info:butts" -> 'jokes)
+    val input: KijiSource = KijiInput(tableURI)("info:word" -> 'word, "info:title" -> 'title)
+    val expectedScheme: KijiScheme = new KijiScheme(
+      Map("word" -> Column("info:word"), "title" -> Column("info:title")))
+
+    input.kijiScheme should equal (expectedScheme)
   }
 
   test("DSL should let you specify inputOptions for a column.") {
@@ -53,15 +69,13 @@ class DSLSpec extends FunSuite {
     val input: KijiSource = KijiInput(tableURI,
       Map(
         Column("info:word", InputOptions(maxVersions=1)) -> 'word,
-        Column("info:butts", InputOptions(maxVersions=2)) -> 'jokes))
-  }
-
-  test("DSL should let you create inputs and outputs with no mappings.") {
-    val input: KijiSource = KijiInput(tableURI)()
-    val output: KijiSource = KijiOutput(tableURI)()
+        Column("info:title", InputOptions(maxVersions=2)) -> 'title))
   }
 
   test("DSL should let you create KijiSources as outputs.") {
     val output: KijiSource = KijiOutput(tableURI)('words -> "info:words")
+    val expectedScheme: KijiScheme = new KijiScheme(Map("words" -> Column("info:words")))
+
+    output.kijiScheme should equal (expectedScheme)
   }
 }
