@@ -40,7 +40,12 @@ import org.kiji.schema.util.InstanceBuilder
 trait KijiSuite
     extends FunSuite
     with TupleConversions {
-  /** Builds a [[RawEntityId]] with the provided string. */
+  /**
+   * Builds a [[RawEntityId]] with the provided string.
+   *
+   * @param identifier Desired contents of the entity id.
+   * @return A [[RawEntityId]].
+   */
   def id(identifier: String): EntityId = {
     val rowKeyFmt: RowKeyFormat2 = RowKeyFormat2.newBuilder()
         .setEncoding(RowKeyEncoding.RAW)
@@ -51,14 +56,27 @@ trait KijiSuite
     factory.getEntityId(identifier)
   }
 
-  /** Builds a timeline from a single value. */
+  /**
+   * Builds a timeline from a single value. This will assign the current time as the timestamp for
+   * value.
+   *
+   * @tparam T Type of the values contained within desired timeline.
+   * @param value Single value to put in the timeline.
+   * @return A timeline containing the desired value
+   */
   def singleton[T](value: T): NavigableMap[Long, T] = {
     val timeline: NavigableMap[Long, T] = new TreeMap()
     timeline.put(Long.MaxValue, value)
     timeline
   }
 
-  /** Builds a timeline from a list of timestamp, value pairs. */
+  /**
+   * Builds a timeline from a list of timestamp, value pairs.
+   *
+   * @tparam T Type of the values contained within desired timeline.
+   * @param values Timestamp value pairs to build the timeline with.
+   * @return A timeline containing the specified timestamp value pairs.
+   */
   def timeline[T](values: (Long, T)*): NavigableMap[Long, T] = {
     values.foldLeft(new TreeMap[Long, T]) { (tree, entry) =>
       val (timestamp, value) = entry
@@ -68,18 +86,27 @@ trait KijiSuite
     }
   }
 
-  /** Constructs and starts a test Kiji instance that uses fake-hbase. */
-  def makeTestKiji(
-      /** Name of the test Kiji instance. */
-      instanceName: String = "default"): Kiji = {
+  /**
+   * Constructs and starts a test Kiji instance that uses fake-hbase.
+   *
+   * @param instanceName Name of the test Kiji instance.
+   * @return A handle to the Kiji instance that just got constructed. Note: This object must be
+   *     {{{release()}}}'d once it is no longer needed.
+   */
+  def makeTestKiji(instanceName: String = "default"): Kiji = {
     new InstanceBuilder(instanceName).build()
   }
 
-  /** Constructs and starts a test Kiji instance and creates a Kiji table. */
+  /**
+   * Constructs and starts a test Kiji instance and creates a Kiji table.
+   *
+   * @param layout Layout of the test table.
+   * @param instanceName Name of the Kiji instance to create.
+   * @return A handle to the Kiji table that just got constructed. Note: This object must be
+   *     {{{release()}}}'d once it is no longer needed.
+   */
   def makeTestKijiTable(
-      /** Layout of the test table. */
       layout: KijiTableLayout,
-      /** Name of the Kiji instance to create. */
       instanceName: String = "default"): KijiTable = {
     val tableName = layout.getName()
     val kiji: Kiji = new InstanceBuilder(instanceName)
@@ -94,10 +121,11 @@ trait KijiSuite
   /**
    * Loads a [[KijiTableLayout]] from the classpath. See [[KijiTableLayouts]] for
    * some layouts that get put on the classpath by KijiSchema.
+   *
+   * @param resourcePath Path to the layout definition file.
+   * @return The layout contained within the provided resource.
    */
-  def layout(
-      /** Path to the layout definition file. */
-      resourcePath: String): KijiTableLayout = {
+  def layout(resourcePath: String): KijiTableLayout = {
     val tableLayoutDef = KijiTableLayouts.getLayout(resourcePath)
     KijiTableLayout.newLayout(tableLayoutDef)
   }

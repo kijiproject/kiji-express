@@ -51,6 +51,7 @@ import org.apache.hadoop.mapred.RecordReader
 
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
+import org.kiji.chopsticks.DSL._
 import org.kiji.lang.Column
 import org.kiji.lang.KijiScheme
 import org.kiji.lang.KijiTap
@@ -66,6 +67,9 @@ import org.kiji.schema.KijiURI
 
 /**
  * Facilitates writing to and reading from a Kiji table.
+ *
+ * @param tableAddress Address of the target KijiTable. This should be provided as a [[KijiURI]].
+ * @param columns Mapping from field name to Kiji column name.
  */
 @ApiAudience.Framework
 @ApiStability.Unstable
@@ -77,7 +81,19 @@ final class KijiSource(
 
   private type HadoopScheme = Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]
 
-  /** Convert scala columns definition into its corresponding java variety. */
+  /** The URI of the target Kiji table. */
+  private val tableUri: KijiURI = KijiURI.newBuilder(tableAddress).build()
+  /** A Kiji scheme intended to be used with Scalding/Cascading's hdfs mode. */
+  private val kijiScheme: KijiScheme = new KijiScheme(convertColumnMap(columns))
+  /** A Kiji scheme intended to be used with Scalding/Cascading's local mode. */
+  private val localKijiScheme: LocalKijiScheme = new LocalKijiScheme(convertColumnMap(columns))
+
+  /**
+   * Convert scala columns definition into its corresponding java variety.
+   *
+   * @param columnMap Mapping from field name to Kiji column name.
+   * @return Java map from field name to column definition.
+   */
   private def convertColumnMap(columnMap: Map[Symbol, Column]): java.util.Map[String, Column] = {
     val wrapped = columnMap
         .map { case (symbol, column) => (symbol.name, column) }
@@ -87,65 +103,65 @@ final class KijiSource(
     new java.util.HashMap(wrapped)
   }
 
-  /** Takes a buffer containing rows and writes them to the table at the specified uri. */
-  private def buildTestTable(rows: Buffer[Tuple], fields: Fields) {
+  /**
+   * Takes a buffer containing rows and writes them to the table at the specified uri.
+   *
+   * @param rows Tuples to write to populate the table with.
+   * @param fields Field names for elements in the tuple.
+   */
+  private def populateTestTable(rows: Buffer[Tuple], fields: Fields) {
     // Open a table writer.
-    val kiji: Kiji = Kiji.Factory.open(tableUri)
-    val table: KijiTable = kiji.openTable(tableUri.getTable())
-    val writer: KijiTableWriter = table.openTableWriter()
-    table.release()
-    kiji.release()
+    val writer =
+        doAndRelease(Kiji.Factory.open(tableUri)) { kiji =>
+          doAndRelease(kiji.openTable(tableUri.getTable())) { table =>
+            table.openTableWriter()
+          }
+        }
 
     // Write the desired rows to the table.
-    rows.foreach { row: Tuple =>
-      val tupleEntry = new TupleEntry(fields, row)
-      val iterator = fields.iterator()
+    try {
+      rows.foreach { row: Tuple =>
+        val tupleEntry = new TupleEntry(fields, row)
+        val iterator = fields.iterator()
 
-      // Get the entity id field.
-      val entityIdField = iterator.next().toString()
-      val entityId = tupleEntry
-          .getObject(entityIdField)
-          .asInstanceOf[EntityId]
+        // Get the entity id field.
+        val entityIdField = iterator.next().toString()
+        val entityId = tupleEntry
+            .getObject(entityIdField)
+            .asInstanceOf[EntityId]
 
-      // Store the retrieved columns in the tuple.
-      while (iterator.hasNext()) {
-        val field = iterator.next().toString()
-        val columnName = new KijiColumnName(columns(Symbol(field)).name())
+        // Iterate through fields in the tuple, adding each one.
+        while (iterator.hasNext()) {
+          val field = iterator.next().toString()
+          val columnName = new KijiColumnName(columns(Symbol(field)).name())
 
-        // Get the timeline to be written.
-        val timeline: NavigableMap[Long, Any] = tupleEntry.getObject(field)
-            .asInstanceOf[NavigableMap[Long, Any]]
+          // Get the timeline to be written.
+          val timeline: NavigableMap[Long, Any] = tupleEntry.getObject(field)
+              .asInstanceOf[NavigableMap[Long, Any]]
 
-        // Write the timeline to the table.
-        for (entry <- timeline.asScala) {
-          val (key, value) = entry
-          writer.put(
-              entityId,
-              columnName.getFamily(),
-              columnName.getQualifier(),
-              key,
-              value)
+          // Write the timeline to the table.
+          for (entry <- timeline.asScala) {
+            val (key, value) = entry
+            writer.put(
+                entityId,
+                columnName.getFamily(),
+                columnName.getQualifier(),
+                key,
+                value)
+          }
         }
       }
+    } finally {
+      writer.close()
     }
-
-    writer.close()
   }
-
-  /** The URI of the target Kiji table. */
-  private val tableUri: KijiURI = KijiURI.newBuilder(tableAddress).build()
-
-  /** A [[org.kiji.lang.KijiScheme]] instance. */
-  val kijiScheme: KijiScheme = new KijiScheme(convertColumnMap(columns))
-
-  /** A [[LocalKijiScheme]] instance. */
-  val localKijiScheme: LocalKijiScheme = new LocalKijiScheme(convertColumnMap(columns))
 
   /**
    * Creates a Scheme that writes to/reads from a Kiji table for usage with
    * the hadoop runner.
    */
   override val hdfsScheme: HadoopScheme = kijiScheme
+      // This cast is required due to Scheme being defined with invariant type parameters.
       .asInstanceOf[HadoopScheme]
 
   /**
@@ -153,11 +169,16 @@ final class KijiSource(
    * the local runner.
    */
   override val localScheme: LocalScheme = localKijiScheme
+      // This cast is required due to Scheme being defined with invariant type parameters.
       .asInstanceOf[LocalScheme]
 
   /**
    * Create a connection to the physical data source (also known as a Tap in Cascading)
    * which, in this case, is a [[org.kiji.schema.KijiTable]].
+   *
+   * @param readOrWrite Specifies if this source is to be used for reading or writing.
+   * @param mode Specifies which job runner/flow planner is being used.
+   * @return A tap to use for this data source.
    */
   override def createTap(readOrWrite: AccessMode)(implicit mode: Mode): Tap[_, _, _] = {
     val tap: Tap[_, _, _] = mode match {
@@ -166,14 +187,14 @@ final class KijiSource(
       case Local(_) => new LocalKijiTap(tableUri, localKijiScheme).asInstanceOf[Tap[_, _, _]]
 
       // Test taps.
-      // TODO: Add support for Hadoop based integration tests.
+      // TODO(CHOP-38): Add support for Hadoop based integration tests.
       case HadoopTest(_, _) => sys.error("HadoopTest mode not supported")
       case Test(buffers) => {
         readOrWrite match {
           // Use Kiji's local tap and scheme when reading.
           case Read => {
             val scheme = localKijiScheme
-            buildTestTable(buffers(this), scheme.getSourceFields())
+            populateTestTable(buffers(this), scheme.getSourceFields())
 
             new LocalKijiTap(tableUri, scheme).asInstanceOf[Tap[_, _, _]]
           }
@@ -211,11 +232,12 @@ object KijiSource {
   /**
    * A LocalKijiScheme that loads rows in a table into the provided buffer. This class
    * should only be used during tests.
+   *
+   * @param buffer Buffer to fill with post-job table rows for tests.
+   * @param columns Scalding field name to Kiji column name mapping.
    */
   private class TestKijiScheme(
-      /** Buffer to fill with post-job table rows for tests. */
       val buffer: Buffer[Tuple],
-      /** Scalding field name to Kiji column name mapping. */
       val columns: java.util.Map[String, Column])
       extends LocalKijiScheme(columns) {
     override def sinkConfInit(
