@@ -183,7 +183,8 @@ public final class KijiInputFormat implements InputFormat<KijiKey, KijiValue> {
       mDataRequest = (KijiDataRequest) SerializationUtils.deserialize(dataRequestBytes);
 
       // Open connections to Kiji.
-      assert split instanceof KijiTableSplit;
+      Preconditions.checkState(split instanceof KijiTableSplit, "KijiTableRecordReader received "
+          + "an InputSplit that was not a KijiTableSplit.");
       mSplit = (KijiTableSplit) split;
 
       final KijiURI inputURI =
@@ -221,7 +222,6 @@ public final class KijiInputFormat implements InputFormat<KijiKey, KijiValue> {
      */
     @Override
     public long getPos() {
-      // TODO: Implement
       return 0L;
     }
 
@@ -231,7 +231,6 @@ public final class KijiInputFormat implements InputFormat<KijiKey, KijiValue> {
      */
     @Override
     public float getProgress() {
-      // TODO: Implement
       return 0.0f;
     }
 

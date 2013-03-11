@@ -221,6 +221,24 @@ public final class KijiTap
   }
 
   /**
+   * Gets the path to the jar file containing a specific class.
+   *
+   * @param clazz whose jar file should be found.
+   * @param libName of the library provided by the jar being searched for. Used only for debug
+   *     messages.
+   * @return the path to the jar file containing the specified class.
+   * @throws IOException if there is a problem retrieving the file for the jar.
+   * @throws ClassNotFoundException if the requested class is not on the classpath.
+   */
+  private static Path findJarForClass(Class<?> clazz, String libName)
+      throws IOException, ClassNotFoundException {
+    final File jarFile = new File(Jars.getJarPathForClass(clazz));
+    Path jarPath = new Path(jarFile.getCanonicalPath());
+    LOG.debug("Found {} jar: {}", libName, jarPath);
+    return jarPath;
+  }
+
+  /**
    * Finds Kiji dependency jars and returns a list of their paths. Use this method to find
    * jars that need to be sent to Hadoop's DistributedCache.
    *
@@ -236,17 +254,9 @@ public final class KijiTap
     Path mapreduceJar;
     Path chopsticksJar;
     try {
-      final File schemaJarFile = new File(Jars.getJarPathForClass(Kiji.class));
-      schemaJar = new Path(schemaJarFile.getParentFile().getCanonicalPath());
-      LOG.debug("Found kiji-schema jar: {}", schemaJar);
-
-      final File mapreduceJarFile = new File(Jars.getJarPathForClass(DistributedCacheJars.class));
-      mapreduceJar = new Path(mapreduceJarFile.getParentFile().getCanonicalPath());
-      LOG.debug("Found kiji-mapreduce jar: {}", mapreduceJar);
-
-      final File chopsticksJarFile = new File(Jars.getJarPathForClass(KijiTap.class));
-      chopsticksJar = new Path(chopsticksJarFile.getParentFile().getCanonicalPath());
-      LOG.debug("Found kiji-chopsticks jar: {}", chopsticksJar);
+      schemaJar = findJarForClass(Kiji.class, "kiji-schema");
+      mapreduceJar = findJarForClass(DistributedCacheJars.class, "kiji-mapreduce");
+      chopsticksJar = findJarForClass(KijiTap.class, "kiji-chopsticks");
     } catch (ClassNotFoundException cnfe) {
       LOG.warn("The kiji jars could not be found; no kiji dependency jars will be "
           + "loaded onto the distributed cache.");
@@ -254,16 +264,16 @@ public final class KijiTap
     }
 
     // Add kiji-schema dependencies.
-    jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, schemaJar));
+    jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, schemaJar.getParent()));
 
     // Add kiji-mapreduce dependencies.
-    jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, mapreduceJar));
+    jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, mapreduceJar.getParent()));
 
     // Add kiji-chopsticks dependencies.
     Preconditions.checkState(
         chopsticksJar.getName().endsWith(".jar"),
         "Failed to find kiji-chopsticks jar. Instead found: {}", chopsticksJar.toString());
-    jars.add(chopsticksJar);
+    jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, chopsticksJar.getParent()));
 
     // Remove duplicate jars and return.
     return DistributedCacheJars.deDuplicateFilenames(jars);
