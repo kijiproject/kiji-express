@@ -79,40 +79,42 @@ class KijiSourceSuite
       ( "1", "world hello   world      hello" )
     )
 
+    // Function used to validate output.
+    def validateOutput(outputBuffer: Buffer[(EntityId, NavigableMap[Long, Utf8])]) {
+      assert(10 === outputBuffer.size)
+
+      // Perform a non-distributed word count.
+      val wordCounts: (Int, Int) = outputBuffer
+          // Extract words from each row.
+          .flatMap { row =>
+            val (_, timeline) = row
+            timeline
+                .asScala
+                .map { case (_, word) => word }
+          }
+          // Count the words.
+          .foldLeft((0, 0)) { (counts, word) =>
+            // Unpack the counters.
+            val (helloCount, worldCount) = counts
+
+            // Increment the appropriate counter and return both.
+            word.toString() match {
+              case "hello" => (helloCount + 1, worldCount)
+              case "world" => (helloCount, worldCount + 1)
+            }
+          }
+
+      // Make sure that the counts are as expected.
+      assert((6, 4) === wordCounts)
+    }
+
     // Build test job.
     JobTest(new ImportJob(_))
         .arg("input", "inputFile")
         .arg("output", uri)
         .source(TextLine("inputFile"), lines)
-        .sink[(EntityId, NavigableMap[Long, Utf8])](KijiOutput(uri)('word -> "family:column")) {
-            outputBuffer: Buffer[(EntityId, NavigableMap[Long, Utf8])] =>
-
-          assert(10 === outputBuffer.size)
-
-          // Perform a non-distributed word count.
-          val wordCounts: (Int, Int) = outputBuffer
-              // Extract words from each row.
-              .flatMap { row =>
-                val (_, timeline) = row
-                timeline
-                    .asScala
-                    .map { case (_, word) => word }
-              }
-              // Count the words.
-              .foldLeft((0, 0)) { (counts, word) =>
-                // Unpack the counters.
-                val (helloCount, worldCount) = counts
-
-                // Increment the appropriate counter and return both.
-                word.toString() match {
-                  case "hello" => (helloCount + 1, worldCount)
-                  case "world" => (helloCount, worldCount + 1)
-                }
-              }
-
-          // Make sure that the counts are as expected.
-          assert((6, 4) === wordCounts)
-        }
+        .sink[(EntityId, NavigableMap[Long, Utf8])](KijiOutput(uri)('word -> "family:column"))(
+            validateOutput)
         .run
         .finish
 
@@ -130,14 +132,14 @@ class KijiSourceSuite
   }
 }
 
-/** Companion object for KijiSourceSuite. */
+/** Companion object for KijiSourceSuite. Contains helper functions and test jobs. */
 object KijiSourceSuite extends KijiSuite {
   /** Convenience method for getting the latest value in a timeline. */
   def getMostRecent[T](timeline: NavigableMap[Long, T]): T = timeline.firstEntry().getValue()
 
   /** Performs a word count on a Kiji table that contains rows, each containing one word. */
   class WordCountJob(args: Args) extends Job(args) {
-    // Setup input.
+    // Setup input to bind values from the "family:column" column to the symbol 'word.
     KijiInput(args("input"))("family:column" -> 'word)
         // Sanitize the word.
         .map('word -> 'cleanword) { words: NavigableMap[Long, Utf8] =>
@@ -146,7 +148,7 @@ object KijiSourceSuite extends KijiSuite {
               .toLowerCase()
         }
         // Count the occurrences of each word.
-        .groupBy('cleanword) { _.size }
+        .groupBy('cleanword) { occurences => occurences.size }
         // Write the result to a file.
         .write(Tsv(args("output")))
   }
@@ -160,7 +162,7 @@ object KijiSourceSuite extends KijiSuite {
         .flatMap('line -> 'word) { line : String => line.split("\\s+") }
         // Generate an entityId for each word.
         .map('word -> 'entityid) { _: String => id(UUID.randomUUID().toString()) }
-        // Write the results to a Kiji table.
+        // Write the results to the "family:column" column of a Kiji table.
         .write(KijiOutput(args("output"))('word -> "family:column"))
   }
 }
