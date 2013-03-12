@@ -218,7 +218,9 @@ public final class KijiInputFormat implements InputFormat<KijiKey, KijiValue> {
     }
 
     /**
-     * @return the current position in the input split.
+     * @return <code>OL</code> always, because it's impossible to tell how much we've read through
+     *     a particular key range, because we have no knowledge of how many rows are actually in
+     *     the range.
      */
     @Override
     public long getPos() {
@@ -226,8 +228,9 @@ public final class KijiInputFormat implements InputFormat<KijiKey, KijiValue> {
     }
 
     /**
-     * @return the percentage (as a float between 0 and 1) of the input split that has been
-     *     processed.
+     * @return <code>0.0</code> always, because it's impossible to tell how much we've read through
+     *     a particular key range, because we have no knowledge of how many rows are actually in
+     *     the range.
      */
     @Override
     public float getProgress() {

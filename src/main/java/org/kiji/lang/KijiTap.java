@@ -31,7 +31,6 @@ import cascading.tap.hadoop.io.HadoopTupleEntrySchemeIterator;
 import cascading.tuple.TupleEntryCollector;
 import cascading.tuple.TupleEntryIterator;
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.commons.lang.StringUtils;
@@ -48,6 +47,7 @@ import org.kiji.annotations.ApiAudience;
 import org.kiji.annotations.ApiStability;
 import org.kiji.mapreduce.DistributedCacheJars;
 import org.kiji.mapreduce.framework.KijiConfKeys;
+import org.kiji.mapreduce.produce.KijiProducer;
 import org.kiji.mapreduce.util.Jars;
 import org.kiji.schema.Kiji;
 import org.kiji.schema.KijiURI;
@@ -255,24 +255,18 @@ public final class KijiTap
     Path chopsticksJar;
     try {
       schemaJar = findJarForClass(Kiji.class, "kiji-schema");
-      mapreduceJar = findJarForClass(DistributedCacheJars.class, "kiji-mapreduce");
+      mapreduceJar = findJarForClass(KijiProducer.class, "kiji-mapreduce");
       chopsticksJar = findJarForClass(KijiTap.class, "kiji-chopsticks");
     } catch (ClassNotFoundException cnfe) {
-      LOG.warn("The kiji jars could not be found; no kiji dependency jars will be "
-          + "loaded onto the distributed cache.");
+      LOG.warn("At least one kiji dependency jar could not be found; no kiji dependency jars will "
+          + "be loaded onto the distributed cache.");
       return jars;
     }
 
-    // Add kiji-schema dependencies.
+    // Add all dependency jars from the directories containing the kiji-schema, kiji-mapreduce,
+    // and kiji-chopsticks jars.
     jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, schemaJar.getParent()));
-
-    // Add kiji-mapreduce dependencies.
     jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, mapreduceJar.getParent()));
-
-    // Add kiji-chopsticks dependencies.
-    Preconditions.checkState(
-        chopsticksJar.getName().endsWith(".jar"),
-        "Failed to find kiji-chopsticks jar. Instead found: {}", chopsticksJar.toString());
     jars.addAll(DistributedCacheJars.listJarFilesFromDirectory(fsConf, chopsticksJar.getParent()));
 
     // Remove duplicate jars and return.

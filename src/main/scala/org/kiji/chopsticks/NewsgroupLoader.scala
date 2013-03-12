@@ -22,7 +22,10 @@ package org.kiji.chopsticks
 import scala.io.Source
 import java.io.File
 
-import org.kiji.schema.{KijiTableWriter, KijiTable, Kiji, KijiURI}
+import org.kiji.schema.Kiji
+import org.kiji.schema.KijiTable
+import org.kiji.schema.KijiTableWriter
+import org.kiji.schema.KijiURI
 import org.kiji.schema.util.ResourceUtils
 
 /**
@@ -37,7 +40,8 @@ import org.kiji.schema.util.ResourceUtils
  * </code>
  * </p>
  *
- * <p>The Kiji table "words" can be created with the following KijiSchema DDL Shell command:
+ * <p>The Kiji table "words" must be created before this loader is run. This can be done with the
+ * following KijiSchema DDL Shell command:
  * <code>
  *   words
  *     CREATE TABLE words WITH DESCRIPTION 'Words in the 20Newsgroups dataset.'
