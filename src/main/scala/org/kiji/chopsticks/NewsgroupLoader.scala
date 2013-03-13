@@ -23,7 +23,7 @@ import scala.actors.Futures._
 import scala.io.Source
 import java.io.File
 
-import org.kiji.chopsticks.DSL._
+import org.kiji.chopsticks.Resources._
 import org.kiji.schema.Kiji
 import org.kiji.schema.KijiTable
 import org.kiji.schema.KijiTableWriter
@@ -60,7 +60,6 @@ import org.kiji.schema.util.ResourceUtils
  * </p>
  */
 object NewsgroupLoader {
-
   /**
    * Reads a newsgroup post from a file and returns the sequence of words contained in the post.
    *

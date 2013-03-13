@@ -19,24 +19,13 @@
 
 package org.kiji.chopsticks
 
-import java.io.Closeable
-
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.schema.filter.KijiColumnFilter
-import org.kiji.schema.util.ReferenceCountable
 
 @ApiAudience.Public
 @ApiStability.Unstable
 object DSL {
-  /**
-   * Exception that contains multiple exceptions.
-   *
-   * @param msg Message to include with the exception.
-   * @param errors Multiple exceptions causing this exception.
-   */
-  final case class CompoundException(msg: String, errors: Seq[Throwable]) extends Exception
-
   // TODO(CHOP-36): Support request-level options.
   /**
    * Factory method for KijiSource.
@@ -118,89 +107,4 @@ object DSL {
       maxVersions: Int = 1,
       filter: KijiColumnFilter = null): org.kiji.lang.Column.InputOptions
     = new org.kiji.lang.Column.InputOptions(maxVersions, filter)
-
-  /**
-   * Performs an operation with a resource that requires post processing. This method will throw a
-   * CompoundException when exceptions get thrown during the operation and while resources are
-   * being closed.
-   *
-   * @tparam T Return type of the operation.
-   * @tparam R Type of resource.
-   * @param resource Opens the resource required by the operation.
-   * @param after Performs any post processing on the resource.
-   * @param fn Operation to perform.
-   * @return The result of the operation.
-   */
-  def doAnd[T, R](resource: => R, after: R => Unit)(fn: R => T): T = {
-    var error: Option[Throwable] = None
-
-    try {
-      // Perform the operation.
-      fn(resource)
-    } catch {
-      // Store the exception in case close fails.
-      case e: Throwable => {
-        error = Some(e)
-        throw e
-      }
-    } finally {
-      try {
-        // Cleanup resources.
-        after(resource)
-      } catch {
-        // Throw the exception(s).
-        case e: Throwable => {
-          error match {
-            case Some(firstErr) => throw CompoundException("Exception was thrown while cleaning up "
-                + "resources after another exception was thrown.", Seq(firstErr, e))
-            case None => throw e
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Performs an operation with a releaseable resource by first retaining the resource and releasing
-   * it upon completion of the operation.
-   *
-   * @tparam T Return type of the operation.
-   * @tparam R Type of resource.
-   * @param resource Retainable resource used by the operation.
-   * @param fn Operation to perform.
-   * @return The result of the operation.
-   */
-  def retainAnd[T, R <: ReferenceCountable[_]](
-      resource: => ReferenceCountable[R])(fn: R => T): T = {
-    doAndRelease[T, R](resource.retain())(fn)
-  }
-
-  /**
-   * Performs an operation with an already retained releaseable resource releasing it upon
-   * completion of the operation.
-   *
-   * @tparam T Return type of the operation.
-   * @tparam R Type of resource.
-   * @param resource Retainable resource used by the operation.
-   * @param fn Operation to perform.
-   * @return The restult of the operation.
-   */
-  def doAndRelease[T, R <: ReferenceCountable[_]](resource: => R)(fn: R => T): T = {
-    def after(r: R) { r.release() }
-    doAnd(resource, after)(fn)
-  }
-
-  /**
-   * Performs an operation with a closeable resource closing it upon completion of the operation.
-   *
-   * @tparam T Return type of the operation.
-   * @tparam R Type of resource.
-   * @param resource Closeable resource used by the operation.
-   * @param fn Operation to perform.
-   * @return The restult of the operation.
-   */
-  def doAndClose[T, C <: Closeable](resource: => C)(fn: C => T): T = {
-    def after(c: C) { c.close() }
-    doAnd(resource, after)(fn)
-  }
 }

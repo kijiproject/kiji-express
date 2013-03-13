@@ -20,7 +20,6 @@
 package org.kiji.chopsticks
 
 import scala.collection.JavaConversions.mapAsJavaMap
-import java.io.Closeable
 
 import org.scalatest.FunSuite
 
@@ -80,69 +79,5 @@ class DSLSuite extends FunSuite {
     val expectedScheme: KijiScheme = new KijiScheme(Map("words" -> Column("info:words")))
 
     assert(expectedScheme == output.hdfsScheme)
-  }
-
-  test("doAnd runs an operation") {
-    var isClosed = false
-    def resource: Closeable = new Closeable {
-      def close() {
-        isClosed = true
-      }
-    }
-    def after(r: Closeable) { r.close() }
-    doAnd(resource, after) { _ => () }
-
-    assert(isClosed)
-  }
-
-  test("doAnd catches one normal exception") {
-    var isClosed = false
-    def resource: Closeable = new Closeable {
-      def close() {
-        isClosed = true
-      }
-    }
-    def after(r: Closeable) { r.close() }
-    val result = try {
-      doAnd(resource, after) { _ => sys.error("test") }
-      false
-    } catch {
-      case err: RuntimeException => true
-    }
-
-    assert(isClosed)
-    assert(result)
-  }
-
-  test("doAnd catches one exception while closing") {
-    def resource: Closeable = new Closeable {
-      def close() {
-        sys.error("test")
-      }
-    }
-    def after(r: Closeable) { r.close() }
-    val result = try {
-      doAnd(resource, after) { _ => () }
-      false
-    } catch {
-      case err: RuntimeException => true
-    }
-
-    assert(result)
-  }
-
-  test("doAnd catches two exceptions") {
-    def resource: Closeable = new Closeable {
-      def close() {
-        sys.error("test")
-      }
-    }
-    def after(r: Closeable) { r.close() }
-    val result = try {
-      doAnd(resource, after) { _ => sys.error("t") }
-      false
-    } catch {
-      case CompoundException(_, Seq(_, _)) => true
-    }
   }
 }
