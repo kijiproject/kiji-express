@@ -128,7 +128,7 @@ final class KijiSource(
         // Iterate through fields in the tuple, adding each one.
         while (iterator.hasNext()) {
           val field = iterator.next().toString()
-          val columnName = new KijiColumnName(columns(Symbol(field)).name())
+          val columnName = new KijiColumnName(columns(Symbol(field)).name)
 
           // Get the timeline to be written.
           val timeline: NavigableMap[Long, Any] = tupleEntry.getObject(field)

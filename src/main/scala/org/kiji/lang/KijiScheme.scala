@@ -263,7 +263,7 @@ object KijiScheme {
     // Add the rest.
     iterator.foreach { fieldName =>
       val column: Column = columns(fieldName.toString())
-      val columnName: KijiColumnName = new KijiColumnName(column.name())
+      val columnName: KijiColumnName = new KijiColumnName(column.name)
 
       result.add(row.getValues(columnName.getFamily(), columnName.getQualifier()))
     }
@@ -294,7 +294,7 @@ object KijiScheme {
     // Store the retrieved columns in the tuple.
     iterator.foreach { fieldName =>
       val column: Column = columns(fieldName.toString())
-      val columnName: KijiColumnName = new KijiColumnName(column.name())
+      val columnName: KijiColumnName = new KijiColumnName(column.name)
 
       writer.put(
           entityId,
@@ -306,12 +306,12 @@ object KijiScheme {
 
   def buildRequest(columns: Iterable[Column]): KijiDataRequest = {
     def addColumn(builder: KijiDataRequestBuilder, column: Column) {
-      val columnName: KijiColumnName = new KijiColumnName(column.name())
-      val inputOptions: Column.InputOptions = column.inputOptions()
+      val columnName: KijiColumnName = new KijiColumnName(column.name)
+      val inputOptions: Column.InputOptions = column.inputOptions
 
       builder.newColumnsDef()
-          .withMaxVersions(inputOptions.maxVersions())
-          .withFilter(inputOptions.filter())
+          .withMaxVersions(inputOptions.maxVersions)
+          .withFilter(inputOptions.filter)
           .add(columnName)
     }
 
