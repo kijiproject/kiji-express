@@ -121,10 +121,10 @@ class LocalKijiTap(
 
   override def resourceExists(jobConf: Properties): Boolean = {
     val uri: KijiURI = KijiURI.newBuilder(tableUri).build()
-    val tableName: String = uri.getTable()
-    val kiji: Kiji = Kiji.Factory.open(uri)
 
-    kiji.getTableNames().contains(tableName)
+    doAndRelease(Kiji.Factory.open(uri)) { kiji: Kiji =>
+      kiji.getTableNames().contains(uri.getTable())
+    }
   }
 
   // currently unable to find last mod time on a table.

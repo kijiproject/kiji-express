@@ -38,8 +38,11 @@ import org.kiji.annotations.ApiStability
 @ApiAudience.Private
 @ApiStability.Unstable
 class KijiTableSplit(
-    val split: TableSplit = new TableSplit())
+    val split: TableSplit)
     extends InputSplit {
+
+  // This can't be a default value since this class is required to have a no-argument constructor.
+  def this() = this(new TableSplit())
 
   override def getLength(): Long = split.getLength()
 

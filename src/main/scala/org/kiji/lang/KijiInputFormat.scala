@@ -183,10 +183,6 @@ class KijiRecordReader(
       .newBuilder(configuration.get(KijiConfKeys.KIJI_INPUT_TABLE_URI))
       .build()
 
-  /** The Kiji instance containing the table being read from. */
-  val kiji: Kiji = Kiji.Factory.open(inputURI, configuration)
-  /** The Kiji table being read from. */
-  val table: KijiTable = kiji.openTable(inputURI.getTable())
   /** A reader for the above table. */
   val reader: KijiTableReader = {
     doAndRelease(Kiji.Factory.open(inputURI, configuration)) { kiji: Kiji =>
