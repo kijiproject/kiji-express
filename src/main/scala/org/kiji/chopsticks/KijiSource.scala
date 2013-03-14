@@ -52,6 +52,7 @@ import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.chopsticks.Resources._
 import org.kiji.lang.Column
+import org.kiji.lang.InputContext
 import org.kiji.lang.KijiScheme
 import org.kiji.lang.KijiTap
 import org.kiji.lang.LocalKijiScheme
@@ -85,10 +86,7 @@ final class KijiSource(
   /** A Kiji scheme intended to be used with Scalding/Cascading's hdfs mode. */
   private val kijiScheme: KijiScheme = new KijiScheme(convertColumnMap(columns))
   /** A Kiji scheme intended to be used with Scalding/Cascading's local mode. */
-  private val localKijiScheme: LocalKijiScheme = {
-    val converted = convertColumnMap(columns)
-    new LocalKijiScheme(new java.util.HashMap(converted.asJava))
-  }
+  private val localKijiScheme: LocalKijiScheme = new LocalKijiScheme(convertColumnMap(columns))
 
   /**
    * Convert scala columns definition into its corresponding java variety.
@@ -198,8 +196,7 @@ final class KijiSource(
 
           // After performing a write, use TestKijiScheme to populate the output buffer.
           case Write => {
-            val converted = convertColumnMap(columns)
-            val scheme = new TestKijiScheme(buffers(this), new java.util.HashMap(converted.asJava))
+            val scheme = new TestKijiScheme(buffers(this), convertColumnMap(columns))
 
             new LocalKijiTap(tableUri, scheme).asInstanceOf[Tap[_, _, _]]
           }
@@ -239,7 +236,7 @@ object KijiSource {
    */
   private class TestKijiScheme(
       val buffer: Buffer[Tuple],
-      val columns: java.util.Map[String, Column])
+      columns: Map[String, Column])
       extends LocalKijiScheme(columns) {
     override def sinkConfInit(
         process: FlowProcess[Properties],
@@ -257,8 +254,7 @@ object KijiSource {
       super.sink(process, sinkCall)
 
       // Read table into buffer.
-      val sourceCall: ConcreteCall[java.util.Iterator[KijiRowData], InputStream] =
-          new ConcreteCall()
+      val sourceCall: ConcreteCall[InputContext, InputStream] = new ConcreteCall()
       sourceCall.setIncomingEntry(new TupleEntry())
       sourcePrepare(process, sourceCall)
       while (source(process, sourceCall)) {

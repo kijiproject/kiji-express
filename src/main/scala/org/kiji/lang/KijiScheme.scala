@@ -21,20 +21,20 @@ package org.kiji.lang
 
 import scala.collection.JavaConverters._
 
-import cascading.flow.FlowProcess;
-import cascading.scheme.Scheme;
-import cascading.scheme.SinkCall;
-import cascading.scheme.SourceCall;
-import cascading.tap.Tap;
-import cascading.tuple.Fields;
-import cascading.tuple.Tuple;
-import cascading.tuple.TupleEntry;
-import com.google.common.base.Objects;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.SerializationUtils;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.RecordReader;
+import cascading.flow.FlowProcess
+import cascading.scheme.Scheme
+import cascading.scheme.SinkCall
+import cascading.scheme.SourceCall
+import cascading.tap.Tap
+import cascading.tuple.Fields
+import cascading.tuple.Tuple
+import cascading.tuple.TupleEntry
+import com.google.common.base.Objects
+import org.apache.commons.codec.binary.Base64
+import org.apache.commons.lang.SerializationUtils
+import org.apache.hadoop.mapred.JobConf
+import org.apache.hadoop.mapred.OutputCollector
+import org.apache.hadoop.mapred.RecordReader
 
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
@@ -71,10 +71,7 @@ class KijiScheme(
 
   /** Fields expected to be in any tuples processed by this scheme. */
   private val fields: Fields = {
-    val fieldArray: Array[Fields] = (Seq(entityidField) ++ columns.keys)
-        .map { name: String => new Fields(name) }
-        .toArray
-    val fieldSpec: Fields = Fields.join(fieldArray: _*)
+    val fieldSpec: Fields = buildFields(columns.keys)
 
     // Set the fields for this scheme.
     setSourceFields(fieldSpec)
@@ -97,21 +94,7 @@ class KijiScheme(
       tap: Tap[JobConf, RecordReader[KijiKey, KijiValue], OutputCollector[_, _]],
       conf: JobConf) {
     // Build a data request.
-    val request: KijiDataRequest = columns
-        .foldLeft(KijiDataRequest.builder()) { (builder, entry) =>
-          val (fieldName, column) = entry
-
-          val columnName: KijiColumnName = new KijiColumnName(column.name())
-          val inputOptions: Column.InputOptions = column.inputOptions()
-
-          builder.newColumnsDef()
-              .withMaxVersions(inputOptions.maxVersions())
-              .withFilter(inputOptions.filter())
-              .add(columnName)
-
-          builder
-        }
-        .build()
+    val request: KijiDataRequest = buildRequest(columns.values)
 
     // Write all the required values to the job's configuration object.
     conf.setInputFormat(classOf[KijiInputFormat])
@@ -200,6 +183,8 @@ class KijiScheme(
     val uriString: String = process.getConfigCopy().get(KijiConfKeys.KIJI_OUTPUT_TABLE_URI)
     val uri: KijiURI = KijiURI.newBuilder(uriString).build()
 
+    // TODO: Check and see if Kiji.Factory.open should be passed the configuration object in
+    //     process.
     doAndRelease(Kiji.Factory.open(uri)) { kiji: Kiji =>
       doAndRelease(kiji.openTable(uri.getTable())) { table: KijiTable =>
         // Set the sink context to an opened KijiTableWriter.
@@ -317,5 +302,32 @@ object KijiScheme {
           columnName.getQualifier(),
           output.getObject(fieldName.toString()))
     }
+  }
+
+  def buildRequest(columns: Iterable[Column]): KijiDataRequest = {
+    def addColumn(builder: KijiDataRequestBuilder, column: Column) {
+      val columnName: KijiColumnName = new KijiColumnName(column.name())
+      val inputOptions: Column.InputOptions = column.inputOptions()
+
+      builder.newColumnsDef()
+          .withMaxVersions(inputOptions.maxVersions())
+          .withFilter(inputOptions.filter())
+          .add(columnName)
+    }
+
+    columns
+        .foldLeft(KijiDataRequest.builder()) { (builder, column) =>
+          addColumn(builder, column)
+          builder
+        }
+        .build()
+  }
+
+  def buildFields(fieldNames: Iterable[String]): Fields = {
+    val fieldArray: Array[Fields] = (Seq(entityidField) ++ fieldNames)
+        .map { name: String => new Fields(name) }
+        .toArray
+
+    Fields.join(fieldArray: _*)
   }
 }

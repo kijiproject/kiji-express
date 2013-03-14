@@ -122,19 +122,19 @@ class KijiTap(
   override def getIdentifier(): String = id
 
   override def  openForRead(
-      jobConfFlowProcess: FlowProcess[JobConf],
+      process: FlowProcess[JobConf],
       recordReader: RecordReader[KijiKey, KijiValue]): TupleEntryIterator = {
     new HadoopTupleEntrySchemeIterator(
-        jobConfFlowProcess,
+        process,
         this.asInstanceOf[Tap[JobConf, RecordReader[_, _], OutputCollector[_, _]]],
         recordReader)
   }
 
   override def openForWrite(
-      jobConfFlowProcess: FlowProcess[JobConf],
+      process: FlowProcess[JobConf],
       outputCollector: OutputCollector[_, _]): TupleEntryCollector = {
     new HadoopTupleEntrySchemeCollector(
-        jobConfFlowProcess,
+        process,
         this.asInstanceOf[Tap[JobConf, RecordReader[_, _], OutputCollector[_, _]]],
         outputCollector)
   }
