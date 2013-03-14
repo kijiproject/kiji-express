@@ -41,8 +41,13 @@ class KijiTableSplit(
     val split: TableSplit)
     extends InputSplit {
 
-  // This can't be a default value since this class is required to have a no-argument constructor.
+  /**
+   * No argument constructor for KijiTableSplit. This is required to be a seperate constructor
+   * so that java has access to it.
+   */
+  // scalastyle:off public.methods.have.type
   def this() = this(new TableSplit())
+  // scalastyle:on public.methods.have.type
 
   override def getLength(): Long = split.getLength()
 

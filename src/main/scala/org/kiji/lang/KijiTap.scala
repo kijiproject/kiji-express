@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory
 
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
+import org.kiji.chopsticks.Resources.doAndRelease
 import org.kiji.mapreduce.DistributedCacheJars
 import org.kiji.mapreduce.framework.KijiConfKeys
 import org.kiji.mapreduce.produce.KijiProducer
