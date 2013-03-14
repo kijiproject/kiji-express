@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.kiji.lang
+package org.kiji.chopsticks
 
 import scala.collection.JavaConverters._
 import java.io.InputStream

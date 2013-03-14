@@ -51,12 +51,6 @@ import org.apache.hadoop.mapred.RecordReader
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.chopsticks.Resources._
-import org.kiji.lang.Column
-import org.kiji.lang.InputContext
-import org.kiji.lang.KijiScheme
-import org.kiji.lang.KijiTap
-import org.kiji.lang.LocalKijiScheme
-import org.kiji.lang.LocalKijiTap
 import org.kiji.schema.EntityId
 import org.kiji.schema.Kiji
 import org.kiji.schema.KijiColumnName

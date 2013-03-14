@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-package org.kiji.lang
+package org.kiji.chopsticks
 
 import java.io.Serializable
 
 import org.kiji.annotations.{ApiAudience, ApiStability}
-import org.kiji.lang.Column.InputOptions
+import org.kiji.chopsticks.Column.InputOptions
 import org.kiji.schema.filter.KijiColumnFilter
 
 /**
@@ -33,11 +33,10 @@ import org.kiji.schema.filter.KijiColumnFilter
  */
 @ApiAudience.Public
 @ApiStability.Unstable
-case class Column(name: String, inputOptions: InputOptions)
-    extends Serializable {
-  /** {@inheritDoc} */
-  override def toString(): String = name
-}
+case class Column(
+    name: String,
+    inputOptions: InputOptions = InputOptions())
+    extends Serializable
 
 object Column {
   /**
@@ -47,7 +46,7 @@ object Column {
    * @param KijiColumnFilter Filters columns to request.
    */
   case class InputOptions(
-        maxVersions: Int,
-        filter: KijiColumnFilter) extends Serializable {
+        maxVersions: Int = 1,
+        filter: KijiColumnFilter = null) extends Serializable {
   }
 }

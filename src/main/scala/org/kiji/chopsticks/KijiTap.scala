@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.kiji.lang
+package org.kiji.chopsticks
 
 import scala.collection.JavaConverters._
 import java.io.File
@@ -66,8 +66,9 @@ import org.kiji.schema.KijiURI
 class KijiTap(
     uri: KijiURI,
     val scheme: KijiScheme)
-    extends Tap[JobConf, Inputter, Outputter](
-        scheme.asInstanceOf[Scheme[JobConf, Inputter, Outputter, _, _]]) {
+    extends Tap[JobConf, RecordReader[KijiKey, KijiValue], OutputCollector[_, _]](
+        scheme.asInstanceOf[Scheme[JobConf, RecordReader[KijiKey, KijiValue],
+            OutputCollector[_, _], _, _]]) {
   import KijiTap._
 
   private val tableUri: String = uri.toString()

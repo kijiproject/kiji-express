@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.kiji.lang
+package org.kiji.chopsticks
 
 import scala.collection.JavaConverters._
 
@@ -66,7 +66,8 @@ import org.kiji.schema.KijiURI
 @ApiStability.Unstable
 class KijiScheme(
     val columns: Map[String, Column])
-    extends Scheme[JobConf, Inputter, Outputter, KijiValue, KijiTableWriter] {
+    extends Scheme[JobConf, RecordReader[KijiKey, KijiValue], OutputCollector[_, _],
+        KijiValue, KijiTableWriter] {
   import KijiScheme._
 
   /** Fields expected to be in any tuples processed by this scheme. */

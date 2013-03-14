@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.kiji.lang
+package org.kiji.chopsticks
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
