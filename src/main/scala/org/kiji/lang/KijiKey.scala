@@ -17,35 +17,33 @@
  * limitations under the License.
  */
 
-package org.kiji.lang;
+package org.kiji.lang
 
-import org.kiji.annotations.ApiAudience;
-import org.kiji.annotations.ApiStability;
-import org.kiji.schema.KijiRowData;
+import org.kiji.annotations.ApiAudience
+import org.kiji.annotations.ApiStability
+import org.kiji.schema.EntityId
 
 /**
- * Acts as a wrapper around {@link KijiRowData}. Instances of this class can be reused in MapReduce
- * jobs to wrap {@link KijiRowData} read from a Kiji table.
+ * Acts as a wrapper around [[EntityId]]. Instances of this class can be reused in MapReduce
+ * jobs to hold entity ids read from Kiji.
  */
 @ApiAudience.Private
 @ApiStability.Unstable
-public final class KijiValue {
-  /** The row data being wrapped by this instance. */
-  private KijiRowData mCurrentValue;
+class KijiKey {
+  /** The entity id being wrapped. */
+  private var currentKey: EntityId = null
 
   /**
-   * @return the row data wrapped by this instance.
+   * @return the entity id wrapped by this instance.
    */
-  public KijiRowData get() {
-    return mCurrentValue;
-  }
+  def get(): EntityId = currentKey
 
   /**
-   * Sets the Kiji row data wrapped by this instance.
+   * Sets the entity id wrapped by this instance.
    *
-   * @param value that will be wrapped by this instance.
+   * @param key that will be wrapped by this instance.
    */
-  public void set(KijiRowData value) {
-    mCurrentValue = value;
+  def set(key: EntityId) {
+    currentKey = key
   }
 }
