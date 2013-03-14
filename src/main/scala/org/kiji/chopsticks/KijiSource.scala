@@ -85,7 +85,10 @@ final class KijiSource(
   /** A Kiji scheme intended to be used with Scalding/Cascading's hdfs mode. */
   private val kijiScheme: KijiScheme = new KijiScheme(convertColumnMap(columns))
   /** A Kiji scheme intended to be used with Scalding/Cascading's local mode. */
-  private val localKijiScheme: LocalKijiScheme = new LocalKijiScheme(convertColumnMap(columns))
+  private val localKijiScheme: LocalKijiScheme = {
+    val converted = convertColumnMap(columns)
+    new LocalKijiScheme(new java.util.HashMap(converted.asJava))
+  }
 
   /**
    * Convert scala columns definition into its corresponding java variety.
@@ -93,13 +96,8 @@ final class KijiSource(
    * @param columnMap Mapping from field name to Kiji column name.
    * @return Java map from field name to column definition.
    */
-  private def convertColumnMap(columnMap: Map[Symbol, Column]): java.util.Map[String, Column] = {
-    val wrapped = columnMap
-        .map { case (symbol, column) => (symbol.name, column) }
-        .asJava
-
-    // Copy the map into a HashMap because scala's JavaConverters aren't serializable.
-    new java.util.HashMap(wrapped)
+  private def convertColumnMap(columnMap: Map[Symbol, Column]): Map[String, Column] = {
+    columnMap.map { case (symbol, column) => (symbol.name, column) }
   }
 
   /**
@@ -200,7 +198,8 @@ final class KijiSource(
 
           // After performing a write, use TestKijiScheme to populate the output buffer.
           case Write => {
-            val scheme = new TestKijiScheme(buffers(this), convertColumnMap(columns))
+            val converted = convertColumnMap(columns)
+            val scheme = new TestKijiScheme(buffers(this), new java.util.HashMap(converted.asJava))
 
             new LocalKijiTap(tableUri, scheme).asInstanceOf[Tap[_, _, _]]
           }
