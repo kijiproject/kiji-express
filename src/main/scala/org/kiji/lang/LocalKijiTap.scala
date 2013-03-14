@@ -132,7 +132,9 @@ class LocalKijiTap(
 
   override def equals(other: Any): Boolean = {
     other match {
-      case tap: LocalKijiTap => (tableUri == tap.tableUri) && (scheme == tap.scheme) && (id == tap.id)
+      case tap: LocalKijiTap => ((tableUri == tap.tableUri)
+          && (scheme == tap.scheme)
+          && (id == tap.id))
       case _ => false
     }
   }
