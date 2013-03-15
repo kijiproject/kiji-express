@@ -51,7 +51,7 @@ object DSL {
    */
   def KijiInput(
       tableURI: String,
-      columns: Map[org.kiji.chopsticks.Column, Symbol]): KijiSource = {
+      columns: Map[Column, Symbol]): KijiSource = {
     val columnMap = columns
         .map { case (col, field) => (field, col) }
     new KijiSource(tableURI, columnMap)
@@ -81,6 +81,6 @@ object DSL {
    */
   def KijiOutput(
       tableURI: String,
-      columns: Map[Symbol, org.kiji.chopsticks.Column])
+      columns: Map[Symbol, Column])
     : KijiSource = new KijiSource(tableURI, columns)
 }

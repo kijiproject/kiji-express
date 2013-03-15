@@ -57,15 +57,12 @@ import org.kiji.schema.KijiURI
  * data from a Cascading flow to a Kiji table
  * (see [[#sink(cascading.flow.FlowProcess, cascading.scheme.SinkCall)]]).
  *
- * Note: Warnings about a missing serialVersionUID are ignored here. When KijiScheme is serialized,
- * the result is not persisted anywhere making serialVersionUID unnecessary.
- *
  * @param columns mapping tuple field names to Kiji column names.
  */
 @ApiAudience.Framework
 @ApiStability.Unstable
 class KijiScheme(
-    val columns: Map[String, Column])
+    private val columns: Map[String, Column])
     extends Scheme[JobConf, RecordReader[KijiKey, KijiValue], OutputCollector[_, _],
         KijiValue, KijiTableWriter] {
   import KijiScheme._
@@ -240,7 +237,7 @@ class KijiScheme(
 /** Companion object for KijiScheme. Contains helper methods and constants. */
 object KijiScheme {
   /** Field name containing a row's [[EntityId]]. */
-  val entityidField: String = "entityid"
+  private[chopsticks] val entityIdField: String = "entityId"
 
   /**
    * Converts a KijiRowData to a Cascading tuple.
@@ -250,7 +247,7 @@ object KijiScheme {
    * @param row The row data.
    * @return A tuple containing the values contained in the specified row.
    */
-  def rowToTuple(
+  private[chopsticks] def rowToTuple(
       columns: Map[String, Column],
       fields: Fields,
       row: KijiRowData): Tuple = {
@@ -281,7 +278,7 @@ object KijiScheme {
    * @param output Tuple to write out.
    * @param writer KijiTableWriter to use to write.
    */
-  def putTuple(
+  private[chopsticks] def putTuple(
       columns: Map[String, Column],
       fields: Fields,
       output: TupleEntry,
@@ -289,7 +286,7 @@ object KijiScheme {
     val iterator = fields.iterator().asScala
 
     // Get the entityId.
-    val entityId: EntityId = output.getObject(entityidField).asInstanceOf[EntityId]
+    val entityId: EntityId = output.getObject(entityIdField).asInstanceOf[EntityId]
     iterator.next()
 
     // Store the retrieved columns in the tuple.
@@ -305,7 +302,7 @@ object KijiScheme {
     }
   }
 
-  def buildRequest(columns: Iterable[Column]): KijiDataRequest = {
+  private[chopsticks] def buildRequest(columns: Iterable[Column]): KijiDataRequest = {
     def addColumn(builder: KijiDataRequestBuilder, column: Column) {
       val columnName: KijiColumnName = new KijiColumnName(column.name)
       val inputOptions: Column.InputOptions = column.inputOptions
@@ -324,8 +321,8 @@ object KijiScheme {
         .build()
   }
 
-  def buildFields(fieldNames: Iterable[String]): Fields = {
-    val fieldArray: Array[Fields] = (Seq(entityidField) ++ fieldNames)
+  private[chopsticks] def buildFields(fieldNames: Iterable[String]): Fields = {
+    val fieldArray: Array[Fields] = (Seq(entityIdField) ++ fieldNames)
         .map { name: String => new Fields(name) }
         .toArray
 

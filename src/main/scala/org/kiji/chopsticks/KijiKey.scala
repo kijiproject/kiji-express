@@ -29,7 +29,7 @@ import org.kiji.schema.EntityId
  */
 @ApiAudience.Private
 @ApiStability.Unstable
-class KijiKey {
+final class KijiKey {
   /** The entity id being wrapped. */
   private var currentKey: EntityId = null
 

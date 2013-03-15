@@ -55,7 +55,7 @@ import org.kiji.schema.KijiURI
  * @param scanner that has an open connection to the desired Kiji table.
  * @param iterator that maintains the current row pointer.
  */
-private[kiji] case class InputContext(
+private[chopsticks] case class InputContext(
     reader: KijiTableReader,
     scanner: KijiRowScanner,
     iterator: Iterator[KijiRowData])
@@ -75,8 +75,10 @@ private[kiji] case class InputContext(
  * <p>Note: Warnings about a missing serialVersionUID are ignored here. When KijiScheme is
  * serialized, the result is not persisted anywhere making serialVersionUID unnecessary.</p>
  */
+@ApiAudience.Framework
+@ApiStability.Unstable
 class LocalKijiScheme(
-    val columns: Map[String, Column])
+    private val columns: Map[String, Column])
     extends Scheme[Properties, InputStream, OutputStream, InputContext, KijiTableWriter] {
 
   /** Fields expected to be in any tuples processed by this scheme. */

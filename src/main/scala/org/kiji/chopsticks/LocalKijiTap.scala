@@ -48,15 +48,17 @@ import org.kiji.schema.KijiURI
  *   the result is not persisted anywhere making serialVersionUID unnecessary.
  * </p>
  */
+@ApiAudience.Framework
+@ApiStability.Unstable
 class LocalKijiTap(
     uri: KijiURI,
-    val scheme: LocalKijiScheme)
+    private val scheme: LocalKijiScheme)
     extends Tap[Properties, InputStream, OutputStream](
         scheme.asInstanceOf[Scheme[Properties, InputStream, OutputStream, _, _]]) {
   /** The URI of the table to be read through this tap. */
-  val tableUri: String = uri.toString()
+  private val tableUri: String = uri.toString()
   /** A unique identifier for this tap instance. */
-  val id: String = UUID.randomUUID().toString()
+  private val id: String = UUID.randomUUID().toString()
 
   /**
    * Sets any configuration options that are required for running a local job

@@ -65,14 +65,14 @@ import org.kiji.schema.KijiURI
  */
 class KijiTap(
     uri: KijiURI,
-    val scheme: KijiScheme)
+    private val scheme: KijiScheme)
     extends Tap[JobConf, RecordReader[KijiKey, KijiValue], OutputCollector[_, _]](
         scheme.asInstanceOf[Scheme[JobConf, RecordReader[KijiKey, KijiValue],
             OutputCollector[_, _], _, _]]) {
   import KijiTap._
 
   private val tableUri: String = uri.toString()
-  val id: String = UUID.randomUUID().toString()
+  private val id: String = UUID.randomUUID().toString()
 
   /**
    * Sets any configuration options that are required for running a MapReduce job
@@ -92,7 +92,7 @@ class KijiTap(
     // Put Kiji dependency jars on the distributed cache.
     getStepConfigDef().setProperty(
         "tmpjars",
-        findKijiJars(conf).reduce { _ + "," + _ })
+        findKijiJars(conf).reduce { (a, b) => a + "," + b })
 
     super.sourceConfInit(process, conf)
   }
@@ -116,7 +116,7 @@ class KijiTap(
     // Put Kiji dependency jars on the distributed cache.
     getStepConfigDef().setProperty(
         "tmpjars",
-        findKijiJars(conf).reduce { _ + "," + _ })
+        findKijiJars(conf).reduce { (a, b) => a + "," + b })
 
     super.sinkConfInit(process, conf)
   }

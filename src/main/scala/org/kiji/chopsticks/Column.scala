@@ -33,7 +33,7 @@ import org.kiji.schema.filter.KijiColumnFilter
  */
 @ApiAudience.Public
 @ApiStability.Unstable
-case class Column(
+final case class Column(
     name: String,
     inputOptions: InputOptions = InputOptions())
     extends Serializable
@@ -45,7 +45,9 @@ object Column {
    * @param maxVersions Max versions to return.
    * @param KijiColumnFilter Filters columns to request.
    */
-  case class InputOptions(
+  @ApiAudience.Public
+  @ApiStability.Unstable
+  final case class InputOptions(
         maxVersions: Int = 1,
         filter: KijiColumnFilter = null) extends Serializable {
   }

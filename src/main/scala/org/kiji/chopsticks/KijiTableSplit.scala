@@ -37,8 +37,8 @@ import org.kiji.annotations.ApiStability
  */
 @ApiAudience.Private
 @ApiStability.Unstable
-class KijiTableSplit(
-    val split: TableSplit)
+final class KijiTableSplit(
+    private val split: TableSplit)
     extends InputSplit {
 
   /**

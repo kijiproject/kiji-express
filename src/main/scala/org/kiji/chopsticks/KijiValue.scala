@@ -29,7 +29,7 @@ import org.kiji.schema.KijiRowData;
  */
 @ApiAudience.Private
 @ApiStability.Unstable
-class KijiValue {
+final class KijiValue {
   /** The row data being wrapped by this instance. */
   private var currentValue: KijiRowData = null
 
