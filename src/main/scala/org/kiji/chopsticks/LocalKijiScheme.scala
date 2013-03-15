@@ -35,6 +35,8 @@ import cascading.tuple.TupleEntry
 import com.google.common.base.Objects
 import org.apache.hadoop.conf.Configuration
 
+import org.kiji.annotations.ApiAudience
+import org.kiji.annotations.ApiStability
 import org.kiji.chopsticks.Resources.doAndRelease
 import org.kiji.mapreduce.framework.KijiConfKeys
 import org.kiji.schema.Kiji
