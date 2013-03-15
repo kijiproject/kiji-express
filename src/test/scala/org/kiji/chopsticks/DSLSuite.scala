@@ -19,6 +19,8 @@
 
 package org.kiji.chopsticks
 
+import java.lang.IllegalArgumentException
+
 import scala.collection.JavaConversions.mapAsJavaMap
 
 import org.scalatest.FunSuite
@@ -29,8 +31,20 @@ import org.kiji.schema.filter.RegexQualifierColumnFilter
 class DSLSuite extends FunSuite {
   val tableURI = "kiji://.env/default/table"
 
+  test("DSL should not let you create a grouptype column without a qualifier.") {
+    intercept[IllegalArgumentException] {
+      val colReq: ColumnRequest = Column("search")
+    }
+  }
+
+  test("DSL should not let you create a maptype column with a qualifier.") {
+    intercept[IllegalArgumentException] {
+      val colReq: ColumnRequest = MapColumn("info:word")
+    }
+  }
+
   test("DSL should let you specify qualifier regex on maptype columns.") {
-    val colReq: ColumnRequest = MapColumn("search", qualifierMatches=".*\\.com")
+    val colReq: ColumnRequest = MapColumn("search", qualifierMatches=""".*\.com""")
 
     // TODO: Test it filters keyvalues correctly.
     assert(colReq.inputOptions.filter.isInstanceOf[RegexQualifierColumnFilter])
@@ -105,6 +119,6 @@ class DSLSuite extends FunSuite {
     val output: KijiSource = KijiOutput(tableURI)('words -> "info:words")
     val expectedScheme: KijiScheme = new KijiScheme(Map("words" -> Column("info:words")))
 
-    assert(expectedScheme equals output.hdfsScheme)
+    assert(expectedScheme == output.hdfsScheme)
   }
 }

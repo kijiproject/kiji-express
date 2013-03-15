@@ -87,19 +87,18 @@ object DSL {
     : KijiSource = new KijiSource(tableURI, columns)
 
   /**
-   * Factory method for Column that is a map-type column.
+   * Factory method for Column that is a map-type column family.
    *
    * @param name of column in "family:qualifier" or "family" form.
    * @param qualifierMatches Regex for filtering qualifiers.
-   * @param timestamp specification for column.
    * @param versions of column to get.
    */
   def MapColumn(
     name: String,
     qualifierMatches: String = null,
-//    timestamp: TimestampSpec = latest,
     versions: Int = 1
   ): ColumnRequest = {
+    require(name.split(":").length == 1)
     val regexColumnFilter: KijiColumnFilter =
         if (null == qualifierMatches) {
           null
@@ -114,30 +113,18 @@ object DSL {
    * Factory method for Column that is a group-type column.
    *
    * @param name of column in "family:qualifier" form.
-   * @param timestamp specification for column.
    * @param versions of column to get.
    */
   def Column(
     name: String,
-//    timestamp: TimestampSpec = latest,
     versions: Int = 1
   ): ColumnRequest = {
+    require(name.split(":").length == 2)
     val inputOptions: InputOptions = new InputOptions(versions, null)
-    new ColumnRequest(name, inputOptions) // TODO: create inputOptions here.
+    new ColumnRequest(name, inputOptions)
   }
 
   // Convenience vals for specifying versions.
   val all = Integer.MAX_VALUE
   val latest = 1
-
-  /**
-   * Case class representing the timestamp specification.
-   * Follows conventions: If end is None, only start at the
-   * start timestamp. If both are None, no timestamp specification.
-   */
-//  case class TimestampSpec (start: Option[Long], end: Option[Long])
-
-//   val latest = new TimestampSpec(None, None)
-//   def range(start: Long, end: Long): TimestampSpec = new TimestampSpec(Some(start), Some(end))
-//   def start(start: Long): TimestampSpec = new TimestampSpec(Some(start), None)
 }
