@@ -55,6 +55,7 @@
       </excludes>
       <filtered>true</filtered>
     </fileSet>
+    -->
     <fileSet>
       <useDefaultExcludes>false</useDefaultExcludes>
       <outputDirectory>conf</outputDirectory>
@@ -66,7 +67,6 @@
       </excludes>
       <filtered>true</filtered>
     </fileSet>
-    -->
     <fileSet>
       <!-- scala api documentation -->
       <useDefaultExcludes>false</useDefaultExcludes>
