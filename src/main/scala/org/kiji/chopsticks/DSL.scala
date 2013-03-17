@@ -86,6 +86,17 @@ object DSL {
       columns: Map[Symbol, ColumnRequest])
     : KijiSource = new KijiSource(tableURI, columns)
 
+
+  // ----------------------------------------------------------
+  // Functions to specify columns as input.
+
+  // Value representing no specified regex.
+  val noQualifierRegex = ""
+
+  // Convenience vals for specifying versions.
+  val all = Integer.MAX_VALUE
+  val latest = 1
+
   /**
    * Factory method for Column that is a map-type column family.
    *
@@ -95,12 +106,12 @@ object DSL {
    */
   def MapColumn(
     name: String,
-    qualifierMatches: String = null,
+    qualifierMatches: String = noQualifierRegex,
     versions: Int = 1
   ): ColumnRequest = {
     require(name.split(":").length == 1)
     val regexColumnFilter: KijiColumnFilter =
-        if (null == qualifierMatches) {
+        if (noQualifierRegex == qualifierMatches) {
           null
         } else {
           new RegexQualifierColumnFilter(qualifierMatches)
@@ -123,8 +134,4 @@ object DSL {
     val inputOptions: InputOptions = new InputOptions(versions, null)
     new ColumnRequest(name, inputOptions)
   }
-
-  // Convenience vals for specifying versions.
-  val all = Integer.MAX_VALUE
-  val latest = 1
 }

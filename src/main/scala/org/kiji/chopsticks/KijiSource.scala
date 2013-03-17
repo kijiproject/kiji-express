@@ -287,7 +287,7 @@ object KijiSource {
    */
   private class TestKijiScheme(
       val buffer: Buffer[Tuple],
-      columns: Map[String, Column])
+      columns: Map[String, ColumnRequest])
       extends KijiScheme(columns) {
     override def sinkCleanup(
         process: FlowProcess[JobConf],
