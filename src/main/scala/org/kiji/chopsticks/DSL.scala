@@ -21,7 +21,9 @@ package org.kiji.chopsticks
 
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
+import org.kiji.chopsticks.ColumnRequest.InputOptions
 import org.kiji.schema.filter.KijiColumnFilter
+import org.kiji.schema.filter.RegexQualifierColumnFilter
 
 @ApiAudience.Public
 @ApiStability.Unstable
@@ -51,7 +53,7 @@ object DSL {
    */
   def KijiInput(
       tableURI: String,
-      columns: Map[Column, Symbol]): KijiSource = {
+      columns: Map[ColumnRequest, Symbol]): KijiSource = {
     val columnMap = columns
         .map { case (col, field) => (field, col) }
     new KijiSource(tableURI, columnMap)
@@ -81,6 +83,55 @@ object DSL {
    */
   def KijiOutput(
       tableURI: String,
-      columns: Map[Symbol, Column])
+      columns: Map[Symbol, ColumnRequest])
     : KijiSource = new KijiSource(tableURI, columns)
+
+
+  // ----------------------------------------------------------
+  // Functions to specify columns as input.
+
+  // Value representing no specified regex.
+  val noQualifierRegex = ""
+
+  // Convenience vals for specifying versions.
+  val all = Integer.MAX_VALUE
+  val latest = 1
+
+  /**
+   * Factory method for Column that is a map-type column family.
+   *
+   * @param name of column in "family:qualifier" or "family" form.
+   * @param qualifierMatches Regex for filtering qualifiers.
+   * @param versions of column to get.
+   */
+  def MapColumn(
+    name: String,
+    qualifierMatches: String = noQualifierRegex,
+    versions: Int = 1
+  ): ColumnRequest = {
+    require(name.split(":").length == 1)
+    val regexColumnFilter: KijiColumnFilter =
+        if (noQualifierRegex == qualifierMatches) {
+          null
+        } else {
+          new RegexQualifierColumnFilter(qualifierMatches)
+        }
+    val inputOptions: InputOptions = new InputOptions(versions, regexColumnFilter)
+    new ColumnRequest(name, inputOptions)
+  }
+
+  /**
+   * Factory method for Column that is a group-type column.
+   *
+   * @param name of column in "family:qualifier" form.
+   * @param versions of column to get.
+   */
+  def Column(
+    name: String,
+    versions: Int = 1
+  ): ColumnRequest = {
+    require(name.split(":").length == 2)
+    val inputOptions: InputOptions = new InputOptions(versions, null)
+    new ColumnRequest(name, inputOptions)
+  }
 }
