@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#   (c) Copyright 2012 WibiData, Inc.
+#   (c) Copyright 2013 WibiData, Inc.
 #
 #   See the NOTICE file distributed with this work for additional
 #   information regarding copyright ownership.
@@ -18,14 +18,15 @@
 #   limitations under the License.
 #
 #
-#   The kiji script is the entry point to several tools for interacting with the kiji system.
+#   The chop script provides tools for running KijiChopsticks scripts and interacting with the
+#   KijiChopsticks system.
 #   Tools are run as:
 #
-#   bash> $KIJI_HOME/bin/kiji <tool-name> [options]
+#   bash> $CHOP_HOME/bin/chop <tool-name> [options]
 #
 #   For full usage information, use:
 #
-#   bash> $KIJI_HOME/bin/kiji help
+#   bash> $CHOP_HOME/bin/chop help
 #
 
 # Resolve a symlink to its absolute target, like how 'readlink -f' works on Linux.
@@ -66,22 +67,18 @@ prgm=`resolve_symlink "$prgm"`
 bin=`dirname "$prgm"`
 bin=`cd "${bin}" && pwd`
 
-KIJI_HOME="${KIJI_HOME:-${bin}/../}"
+CHOP_HOME="${CHOP_HOME:-${bin}/../}"
 
-# If KIJI_MR_HOME is set, jars that are part of the kiji-mapreduce distribution
-# will be added to the classpath.
-KIJI_MR_HOME=${KIJI_MR_HOME:-""}
+# Any user code you want to add to the chopsticks classpath may be done via this env var.
+CHOP_CLASSPATH=${CHOP_CLASSPATH:-""}
 
-# Any user code you want to add to the kiji classpath may be done via this env var.
-KIJI_CLASSPATH=${KIJI_CLASSPATH:-""}
-
-# Any arguments you want to pass to kiji's java may be done via this env var.
-KIJI_JAVA_OPTS=${KIJI_JAVA_OPTS:-""}
+# Any arguments you want to pass to chopstick's jvm may be done via this env var.
+CHOP_JAVA_OPTS=${CHOP_JAVA_OPTS:-""}
 
 # This is a workaround for OS X Lion, where a bug in JRE 1.6
 # creates a lot of 'SCDynamicStore' errors.
 if [ `uname` = "Darwin" ]; then
-    KIJI_JAVA_OPTS="$KIJI_JAVA_OPTS -Djava.security.krb5.realm= -Djava.security.krb5.kdc="
+    CHOP_JAVA_OPTS="$CHOP_JAVA_OPTS -Djava.security.krb5.realm= -Djava.security.krb5.kdc="
 fi
 
 # An existing set of directories to use for the java.library.path property should
@@ -95,22 +92,22 @@ HBASE_HOME="${HBASE_HOME:-/usr/lib/hbase}"
 HADOOP_HOME="${HADOOP_HOME:-/usr/lib/hadoop}"
 
 # First make sure we have everything we need in the environment.
-if [ -z $KIJI_HOME -o ! -d "$KIJI_HOME" ]; then
-    echo "Please set your KIJI_HOME environment variable."
+if [ -z ${CHOP_HOME} -o ! -d "${CHOP_HOME}" ]; then
+    echo "Please set your CHOP_HOME environment variable."
     exit 1
 fi
-if [ -z $HBASE_HOME -o ! -d "$HBASE_HOME" ]; then
+if [ -z ${HBASE_HOME} -o ! -d "${HBASE_HOME}" ]; then
     echo "Please set your HBASE_HOME environment variable."
     exit 1
 fi
-if [ -z $HADOOP_HOME -o ! -d "$HADOOP_HOME" ]; then
+if [ -z ${HADOOP_HOME} -o ! -d "${HADOOP_HOME}" ]; then
     echo "Please set your HADOOP_HOME environment variable."
     exit 1
 fi
 
 if [ -z $1 ]; then
-    echo "kiji: Tool launcher for the Kiji framework"
-    echo "Run 'kiji help' to see a list of available tools."
+    echo "chop: Tool launcher for KijiChopsticks."
+    echo "Run 'chop help' to see a list of available tools."
     exit 1
 fi
 
@@ -180,27 +177,21 @@ function mutate_classpath () {
 }
 
 
-# Gather the kiji dependency jars.
-libjars="${KIJI_HOME}/lib/*"
-
-# If KIJI_MR_HOME is set and is not equal to KIJI_HOME, add jars in
-# $KIJI_MR_HOME/lib to classpath.
-if [[ -n "$KIJI_MR_HOME" && "$KIJI_HOME" != "$KIJI_MR_HOME" ]]; then
-  libjars="${libjars}:${KIJI_MR_HOME}/lib/*"
-fi
+# Gather the chopsticks dependency jars.
+libjars="${CHOP_HOME}/lib/*"
 
 # Gather the HBase classpath.
-hbase_cp=$($HBASE_HOME/bin/hbase classpath)
-hbase_cp=$(mutate_classpath 'slf4j-log4j12' "$hbase_cp")
+hbase_cp=$(${HBASE_HOME}/bin/hbase classpath)
+hbase_cp=$(mutate_classpath 'slf4j-log4j12' "${hbase_cp}")
 
 # Hadoop classpath
-hadoop_cp=$($HADOOP_HOME/bin/hadoop classpath)
-hadoop_cp=$(mutate_classpath 'slf4j-log4j12' "$hadoop_cp")
+hadoop_cp=$(${HADOOP_HOME}/bin/hadoop classpath)
+hadoop_cp=$(mutate_classpath 'slf4j-log4j12' "${hadoop_cp}")
 
 # Note that we put the libjars before the hbase jars, in case there are conflicts.
-kiji_conf=$KIJI_HOME/conf
-# We put $KIJI_CLASSPATH at the beginning classpath to allow users to win when there are conflicts.
-kiji_cp="$KIJI_CLASSPATH:$kiji_conf:$libjars:$hadoop_cp:$hbase_cp"
+chop_conf=${CHOP_HOME}/conf
+# We put $CHOP_CLASSPATH at the beginning classpath to allow users to win when there are conflicts.
+chop_cp="${CHOP_CLASSPATH}:${chop_conf}:${libjars}:${hadoop_cp}:${hbase_cp}"
 
 # Determine location of Hadoop native libraries and set java.library.path.
 if [ -d "${HADOOP_HOME}/lib/native" ]; then
@@ -212,82 +203,123 @@ if [ -d "${HADOOP_HOME}/lib/native" ]; then
   fi
 fi
 
-# Before running the command, update the "last used" timestamp to use with the upgrade
-# check-in server, if we are running inside a Kiji BentoBox. We know we're running in
-# a Kiji BentoBox if the timestamp generation script exists.
-usage_timestamp_script="${bin}/record-usage-timestamp.sh"
-if [ -f "${usage_timestamp_script}" -a -x "${usage_timestamp_script}" ]; then
-  "${usage_timestamp_script}"
-fi
+function jar_command() {
+  if [[ $# > 0 && $1 == "--help" ]]; then
+    echo "Usage: chop <local|cluster|jar> <jarFile> <mainClass> [args...]"
+    echo
+    exit 0
+  fi
+  user_jar_file=$1
+  class=$2
+  if [ -z "${user_jar_file}" ]; then
+    echo "Error: no jar file specified."
+    echo "Usage: chop <local|cluster|jar> <jarFile> <mainClass> [args...]"
+    exit 1
+  fi
+  if [ ! -f "${user_jar_file}" ]; then
+    echo "Error: Cannot find jar file ${user_jar_file}"
+    echo "Usage: chop <local|cluster|jar> <jarFile> <mainClass> [args...]"
+    exit 1
+  fi
+  if [ -z "${class}" ]; then
+    echo "Error: no main class specified."
+    echo "Usage: chop <local|cluster|jar> <jarFile> <mainClass> [args...]"
+    exit 1
+  fi
+  chop_cp="${user_jar_file}:${chop_cp}"
+}
 
-# If we're running in a Kiji BentoBox, inform the user of any BentoBox upgrades that
-# are available.
-upgrade_informer_script="${bin}/upgrade-informer.sh"
-if [ -f "${upgrade_informer_script}" -a -x "${upgrade_informer_script}" ]; then
-  "${upgrade_informer_script}"
-fi
+function print_tool_usage() {
+  echo 'The chop script can run programs written using KijiChopsticks.'
+  echo
+  echo 'USAGE'
+  echo
+  echo '  chop <command> <args>'
+  echo
+  echo 'COMMANDS'
+  echo
+  echo '  help          - Displays this help message. Use --verbose for more information.'
+  echo '  local         - Runs an analysis job using the local job runner.'
+  echo '  hdfs          - Runs an analysis job using a Hadoop cluster.'
+  echo '  jar           - Runs an arbitrary Scala or Java program.'
+  echo '  classpath     - Prints the classpath used to run KijiChopsticks.'
+  echo
+}
+
+function print_env_usage() {
+  echo
+  echo "ENVIRONMENT VARIABLES"
+  echo
+  echo "  Users can set several environment variables to change the behavior of the chop script."
+  echo "  These include:"
+  echo
+  echo "  CHOP_CLASSPATH      Should contain a colon-seperated list of paths to client libraries"
+  echo "                      to place on the classpath of run tools. The libraries"
+  echo "                      specified will be placed first on the classpath so that they"
+  echo "                      will take precedence over libraries provided by KijiChopsticks."
+  echo "                      By default CHOP_CLASSPATH is empty."
+  echo
+  echo "  CHOP_JAVA_OPTS      Should contain extra arguments to pass to the JVM used to run"
+  echo "                      KijiChopsticks. By default, CHOP_JAVA_OPTS is empty."
+  echo
+  echo "  JAVA_LIBRARY_PATH   Should contain a colon-seperated list of paths to additional native"
+  echo "                      libraries to pass to the JVM (through the java.library.path"
+  echo "                      property). Note the chop script will always pass the native"
+  echo "                      libraries included with your Hadoop distribution to the JVM. By"
+  echo "                      default JAVA_LIBRARY_PATH is empty."
+}
 
 command=$1
-foreground=true # Run command in the foreground.
 
-case $command in
-    classpath)
-        echo "$kiji_cp"
-        exit 0
-        ;;
+case ${command} in
+  help)
+    print_tool_usage
+    if [[ $1 == "--verbose" ]]; then
+      print_env_usage
+    fi
+    exit 0
+    ;;
 
-    jar)
-        shift  # pop off the command
-        if [[ $# > 0 && $1 == "--help" ]]; then
-          echo "Usage: kiji jar <jarFile> <mainClass> [args...]"
-          echo
-          exit 0
-        fi
-        user_jar_file=$1
-        class=$2
-        shift
-        shift
-        if [ -z "$user_jar_file" ]; then
-          echo "Error: no jar file specified."
-          echo "Usage: kiji jar <jarFile> <mainClass> [args...]"
-          exit 1
-        fi
-        if [ ! -f "$user_jar_file" ]; then
-          echo "Error: Cannot find jar file $user_jar_file"
-          echo "Usage: kiji jar <jarFile> <mainClass> [args...]"
-          exit 1
-        fi
-        if [ -z "$class" ]; then
-          echo "Error: no main class specified."
-          echo "Usage: kiji jar <jarFile> <mainClass> [args...]"
-          exit 1
-        fi
-        kiji_cp="${user_jar_file}:${kiji_cp}"
-        ;;
+  classpath)
+    echo "${chop_cp}"
+    exit 0
+    ;;
 
-    *)
-        class=org.kiji.schema.tools.KijiToolLauncher
-        ;;
+  local|hdfs)
+    shift  # pop off the command
+    jar_command $@
+    shift
+    shift
+    run_mode=${command}
+    scalding_tool="com.twitter.scalding.Tool"
+    ;;
+
+  jar)
+    shift  # pop off the command
+    jar_command $@
+    shift
+    shift
+    ;;
 esac
 
-if [ -z $class ]; then
-    echo "Unknown command: $command"
+if [ -z "${class}" ]; then
+    echo "Unknown command: ${command}"
     echo "Try:"
-    echo "  kiji help"
+    echo "  chop help"
     exit 1
 fi
 
-export KIJI_JAVA_OPTS
+export CHOP_JAVA_OPTS
 
-if [ ! -z "$JAVA_LIBRARY_PATH" ]; then
-  java_opts="$java_opts -Djava.library.path=$JAVA_LIBRARY_PATH"
+if [ ! -z "${JAVA_LIBRARY_PATH}" ]; then
+  java_opts="${java_opts} -Djava.library.path=${JAVA_LIBRARY_PATH}"
 fi
 
 # Run it!
-
-if $foreground ; then
-  exec java -cp "$kiji_cp" $java_opts $KIJI_JAVA_OPTS $class "$@"
+if [ -z "${scalding_tool}" ]; then
+  exec java -cp "${chop_cp}" ${java_opts} ${CHOP_JAVA_OPTS} \
+    "${class}" "$@"
 else
-  nohup java -cp "$kiji_cp" $java_opts $KIJI_JAVA_OPTS $class "$@" \
-      >/dev/null 2>&1 </dev/null &
+  exec java -cp "${chop_cp}" ${java_opts} ${CHOP_JAVA_OPTS} ${scalding_tool} \
+    "${class}" "--${run_mode}" "$@"
 fi

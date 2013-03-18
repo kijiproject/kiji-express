@@ -44,6 +44,16 @@
       <filtered>true</filtered>
     </fileSet>
     <fileSet>
+      <useDefaultExcludes>true</useDefaultExcludes>
+      <outputDirectory>ddl</outputDirectory>
+      <directory>src/main/ddl</directory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>words.ddl</include>
+      </includes>
+      <filtered>false</filtered>
+    </fileSet>
+    <fileSet>
       <useDefaultExcludes>false</useDefaultExcludes>
       <outputDirectory>bin</outputDirectory>
       <directory>src/main/scripts</directory>
@@ -52,7 +62,7 @@
         <exclude>*~</exclude>
         <exclude>*.swp</exclude>
       </excludes>
-      <filtered>true</filtered>
+      <filtered>false</filtered>
     </fileSet>
     <fileSet>
       <useDefaultExcludes>false</useDefaultExcludes>
