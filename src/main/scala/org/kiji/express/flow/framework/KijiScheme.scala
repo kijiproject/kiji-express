@@ -361,7 +361,7 @@ private[express] object KijiScheme {
         .map { field => columns(field.toString) }
         // Build the tuple, by adding each requested value into result.
         .foreach {
-            case ColumnFamily(family, _, ColumnRequestOptions(_, _, replacementOption)) => {
+            case ColumnFamily(family, _, ColumnRequestOptions(_, _, replacementOption, _)) => {
               if (row.containsColumn(family)) {
                 result.add(KijiSlice(row, family))
               } else {
@@ -378,7 +378,7 @@ private[express] object KijiScheme {
             case QualifiedColumn(
                 family,
                 qualifier,
-                ColumnRequestOptions(_, _, replacementOption)) => {
+                ColumnRequestOptions(_, _, replacementOption, _)) => {
               if (row.containsColumn(family, qualifier)) {
                 result.add(KijiSlice(row, family, qualifier))
               } else {
@@ -431,23 +431,24 @@ private[express] object KijiScheme {
       }
       case None => System.currentTimeMillis()
     }
-
     iterator
         .foreach { fieldName =>
             val value = output.getObject(fieldName.toString())
             columns(fieldName.toString()) match {
-              case ColumnFamily(family, qualField, _) => {
+              case ColumnFamily(family, qualField, ColumnRequestOptions(_, _, _, skipNullsOnWrite)) => {
                 require(
                     qualField.isDefined,
                     "You cannot write to a map family without specifying a qualifier field.")
-                writer.put(entityId.toJavaEntityId(tableUri),
-                  family,
-                  output.getObject(qualField.get).asInstanceOf[String],
-                  timestamp,
-                  AvroUtil.encodeToJava(value))
+                if (!skipNullsOnWrite || value != null)
+                  writer.put(entityId.toJavaEntityId(tableUri),
+                    family,
+                    output.getObject(qualField.get).asInstanceOf[String],
+                    timestamp,
+                    AvroUtil.encodeToJava(value))
               }
-              case QualifiedColumn(family, qualifier, _) => {
-                writer.put(
+              case QualifiedColumn(family, qualifier, ColumnRequestOptions(_, _, _, skipNullsOnWrite)) => {
+                if (!skipNullsOnWrite || value != null)
+                  writer.put(
                     entityId.toJavaEntityId(tableUri),
                     family,
                     qualifier,
