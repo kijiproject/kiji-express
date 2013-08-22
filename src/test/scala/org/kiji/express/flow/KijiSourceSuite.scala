@@ -649,6 +649,38 @@ class KijiSourceSuite
     // Run the test in hadoop mode.
     jobTest.runHadoop.finish
   }
+
+  test("A job that writes skipping missing or nulls is run.") {
+    // Create test Kiji table.
+    val uri: String = doAndRelease(makeTestKijiTable(simpleLayout)) { table: KijiTable =>
+      table.getURI().toString()
+    }
+
+    val in: List[(String, String)] = List(
+      ("0", "zero"),
+      ("1", null),
+      ("2", "__MISSING__"),
+      ("3", "three"))
+
+    def validate(outputBuffer: Buffer[(EntityId, KijiSlice[String])]) {
+      //println(outputBuffer)
+      assert(outputBuffer.size === 2)
+      assert(Set("zero", "three") == outputBuffer.map { x => (x._2.getFirst.datum) }.toSet)
+    }
+
+    val jobTest = JobTest(new ImportJobNoNulls(_))
+      .arg("input", "inputFile")
+      .arg("output", uri)
+      .source(Tsv("inputFile"), in)
+      .sink(KijiOutput(uri)(Map(Column("family:column1").skipNullsOnWrite -> 'column1)))(validate)
+
+    // Run in local mode.
+    jobTest.run.finish
+
+    // Run in hadoop mode.
+    jobTest.runHadoop.finish
+  }
+
 }
 
 /** Companion object for KijiSourceSuite. Contains test jobs. */
@@ -912,4 +944,14 @@ object KijiSourceSuite extends KijiSuite {
         .joinWithSmaller('terms -> 'line, sidePipe)
         .write(Tsv(args("output")))
   }
+
+  class ImportJobNoNulls(args: Args) extends KijiJob(args) {
+    // Setup input.
+    Tsv(args("input"))
+      .mapTo((0, 1) -> ('entityId, 'column1)){ x: (String, String) => (EntityId(x._1), x._2) }
+      .map('column1 -> 'column1){ x: String => if (x == "__MISSING__") Missing else x }
+      .write(KijiOutput(args("output"))(Map(Column("family:column1").skipNullsOnWrite -> 'column1)))
+  }
+
+
 }

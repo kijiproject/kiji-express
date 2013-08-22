@@ -319,14 +319,14 @@ object KijiSource {
    */
   private def columnRequestsAllData(
       columns: Map[String, ColumnRequest]): Map[String, ColumnRequest] = {
-    val emptyOptions: ColumnRequestOptions =
-        new ColumnRequestOptions(Integer.MAX_VALUE, None, None)
+    def emptyOptions(skipNullsOnWrite: Boolean): ColumnRequestOptions =
+        new ColumnRequestOptions(Integer.MAX_VALUE, None, None, skipNullsOnWrite)
     val modifiedColumns = columns.mapValues {
-      case QualifiedColumn(family, qualifier, options) => {
-        new QualifiedColumn(family, qualifier, emptyOptions)
+      case QualifiedColumn(family, qualifier, ColumnRequestOptions(_, _, _, skipNullsOnWrite)) => {
+        new QualifiedColumn(family, qualifier, emptyOptions(skipNullsOnWrite))
       }
-      case ColumnFamily(family, qualField, options) => {
-        new ColumnFamily(family, qualField, emptyOptions)
+      case ColumnFamily(family, qualField, ColumnRequestOptions(_, _, _, skipNullsOnWrite)) => {
+        new ColumnFamily(family, qualField, emptyOptions(skipNullsOnWrite))
       }
     }
 

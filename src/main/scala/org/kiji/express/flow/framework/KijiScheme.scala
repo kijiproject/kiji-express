@@ -49,6 +49,7 @@ import org.kiji.express.flow.ColumnRequest
 import org.kiji.express.flow.ColumnRequestOptions
 import org.kiji.express.flow.QualifiedColumn
 import org.kiji.express.flow.TimeRange
+import org.kiji.express.flow.Missing
 import org.kiji.express.util.AvroUtil
 import org.kiji.express.util.Resources.doAndRelease
 import org.kiji.mapreduce.framework.KijiConfKeys
@@ -361,7 +362,7 @@ private[express] object KijiScheme {
         .map { field => columns(field.toString) }
         // Build the tuple, by adding each requested value into result.
         .foreach {
-            case ColumnFamily(family, _, ColumnRequestOptions(_, _, replacementOption)) => {
+            case ColumnFamily(family, _, ColumnRequestOptions(_, _, replacementOption, _)) => {
               if (row.containsColumn(family)) {
                 result.add(KijiSlice(row, family))
               } else {
@@ -378,7 +379,7 @@ private[express] object KijiScheme {
             case QualifiedColumn(
                 family,
                 qualifier,
-                ColumnRequestOptions(_, _, replacementOption)) => {
+                ColumnRequestOptions(_, _, replacementOption, _)) => {
               if (row.containsColumn(family, qualifier)) {
                 result.add(KijiSlice(row, family, qualifier))
               } else {
@@ -431,31 +432,32 @@ private[express] object KijiScheme {
       }
       case None => System.currentTimeMillis()
     }
-
     iterator
-        .foreach { fieldName =>
-            val value = output.getObject(fieldName.toString())
-            columns(fieldName.toString()) match {
-              case ColumnFamily(family, qualField, _) => {
-                require(
-                    qualField.isDefined,
-                    "You cannot write to a map family without specifying a qualifier field.")
-                writer.put(entityId.toJavaEntityId(tableUri),
-                  family,
-                  output.getObject(qualField.get).asInstanceOf[String],
-                  timestamp,
-                  AvroUtil.encodeToJava(value))
-              }
-              case QualifiedColumn(family, qualifier, _) => {
-                writer.put(
-                    entityId.toJavaEntityId(tableUri),
-                    family,
-                    qualifier,
-                    timestamp,
-                    AvroUtil.encodeToJava(value))
-              }
-            }
+      .foreach { fieldName => {
+        (Option(output.getObject(fieldName.toString())), columns(fieldName.toString())) match {
+          case (Some(Missing), _) => { }
+          case (None, ColumnFamily(_, _, ColumnRequestOptions(_, _, _, true))) => { }
+          case (None, QualifiedColumn(_, _, ColumnRequestOptions(_, _, _, true))) => { }
+          case (Some(value), ColumnFamily(family, qualField, _)) => {
+            require(
+              qualField.isDefined,
+              "You cannot write to a map family without specifying a qualifier field.")
+            writer.put(entityId.toJavaEntityId(tableUri),
+              family,
+              output.getObject(qualField.get).asInstanceOf[String],
+              timestamp,
+              AvroUtil.encodeToJava(value))
+          }
+          case (Some(value), QualifiedColumn(family, qualifier, _)) => {
+            writer.put(
+              entityId.toJavaEntityId(tableUri),
+              family,
+              qualifier,
+              timestamp,
+              AvroUtil.encodeToJava(value))
+          }
         }
+      }}
   }
 
   /**

@@ -312,4 +312,12 @@ package object flow {
     // Ensure that the timerange bounds are sensible.
     require(begin <= end, "Invalid time range specified: (%d, %d)".format(begin, end))
   }
+
+  /**
+   * Represents a value that will never be inserted in Kiji table.
+   */
+  @ApiAudience.Public
+  @ApiStability.Experimental
+  object Missing
+
 }

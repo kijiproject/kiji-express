@@ -65,6 +65,14 @@ private[express] sealed trait ColumnRequest extends Serializable {
    * @return the name of the column this ColumnRequest specifies.
    */
   private[express] def getColumnName(): KijiColumnName
+
+  /**
+   * Specifies that null values should not be stored in hbase.
+   * This is NOT the default behavior.
+   *
+   * @return this ColumnRequest with null-skipping on write configured.
+   */
+  def skipNullsOnWrite: ColumnRequest
 }
 
 /**
@@ -91,13 +99,10 @@ final case class QualifiedColumn private[express] (
    * @param datum to use if any row is missing this column.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWith[T](datum: T): ColumnRequest = {
+  def replaceMissingWith[T](datum: T): QualifiedColumn = {
     val replacement: KijiSlice[T] =
         new KijiSlice(List(Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum)))
-    return new QualifiedColumn(
-        family,
-        qualifier,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
   /**
@@ -109,13 +114,10 @@ final case class QualifiedColumn private[express] (
    * @param datum to use if any row is missing this column.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWithVersioned[T](version: Long, datum: T): ColumnRequest = {
+  def replaceMissingWithVersioned[T](version: Long, datum: T): QualifiedColumn = {
     val replacement: KijiSlice[T] =
         new KijiSlice(List(Cell(family, qualifier, version, datum)))
-    return new QualifiedColumn(
-        family,
-        qualifier,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
   /**
@@ -126,14 +128,11 @@ final case class QualifiedColumn private[express] (
    * @param data to use if any row is missing this column.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWith[T](data: Seq[T]): ColumnRequest = {
+  def replaceMissingWith[T](data: Seq[T]): QualifiedColumn = {
     val replacement: KijiSlice[T] =
       new KijiSlice(data.map { datum: T =>
         Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum) })
-    return new QualifiedColumn(
-        family,
-        qualifier,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
   /**
@@ -144,21 +143,20 @@ final case class QualifiedColumn private[express] (
    * @param versionedData is tuples of (version, datum) to use if any row is missing this column.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWithVersioned[T](versionedData: Seq[(Long, T)]): ColumnRequest = {
+  def replaceMissingWithVersioned[T](versionedData: Seq[(Long, T)]): QualifiedColumn = {
     val replacement: KijiSlice[_] =
       new KijiSlice(versionedData.map { case (version: Long, datum: Any) =>
         Cell(family, qualifier, version, datum) })
-    return new QualifiedColumn(
-        family,
-        qualifier,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
-  override def ignoreMissing(): ColumnRequest = {
-    return new QualifiedColumn(family, qualifier, options.newWithReplacement(None))
+  override def ignoreMissing(): QualifiedColumn = {
+    return copy(options = options.newWithReplacement(None))
   }
 
   override def getColumnName(): KijiColumnName = new KijiColumnName(family, qualifier)
+
+  override def skipNullsOnWrite: QualifiedColumn = copy(options = options.newSkipNullsOnWrite)
 }
 
 /**
@@ -187,13 +185,10 @@ final case class ColumnFamily private[express] (
    * @param datum to use if any row is missing this column.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWith[T](qualifier: String, datum: T): ColumnRequest = {
+  def replaceMissingWith[T](qualifier: String, datum: T): ColumnFamily = {
     val replacement: KijiSlice[T] =
         new KijiSlice(List(Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum)))
-    return new ColumnFamily(
-        family,
-        qualifierSelector,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
   /**
@@ -206,13 +201,10 @@ final case class ColumnFamily private[express] (
    * @param datum to use if any row is missing this column.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWithVersioned[T](qualifier: String, version: Long, datum: T): ColumnRequest = {
+  def replaceMissingWithVersioned[T](qualifier: String, version: Long, datum: T): ColumnFamily = {
     val replacement: KijiSlice[T] =
         new KijiSlice(List(Cell(family, qualifier, version, datum)))
-    return new ColumnFamily(
-        family,
-        qualifierSelector,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
   /**
@@ -224,14 +216,11 @@ final case class ColumnFamily private[express] (
    * @param data to use if any row is missing this column. It is in (qualifier, datum) tuples.
    * @return this ColumnRequest with replacement configured.
    */
-  def replaceMissingWith[T](data: Seq[(String, T)]): ColumnRequest = {
+  def replaceMissingWith[T](data: Seq[(String, T)]): ColumnFamily = {
     val replacement: KijiSlice[_] =
       new KijiSlice(data.map { case (qualifier: String, datum: Any) =>
         Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum) })
-    return new ColumnFamily(
-        family,
-        qualifierSelector,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
   /**
@@ -244,21 +233,20 @@ final case class ColumnFamily private[express] (
    * @return this ColumnRequest with replacement configured.
    */
   def replaceMissingWithVersioned[T](
-      versionedData: Seq[(String, Long, T)]): ColumnRequest = {
+      versionedData: Seq[(String, Long, T)]): ColumnFamily = {
     val replacement: KijiSlice[_] =
       new KijiSlice(versionedData.map { case (qualifier: String, ts: Long, datum: Any) =>
         Cell(family, qualifier, ts, datum) })
-    return new ColumnFamily(
-        family,
-        qualifierSelector,
-        options.newWithReplacement(Some(replacement)))
+    return copy(options = options.newWithReplacement(Some(replacement)))
   }
 
-  override def ignoreMissing(): ColumnRequest = {
+  override def ignoreMissing(): ColumnFamily = {
     return new ColumnFamily(family, qualifierSelector, options.newWithReplacement(None))
   }
 
   override def getColumnName(): KijiColumnName = new KijiColumnName(family)
+
+  override def skipNullsOnWrite: ColumnFamily = copy(options = options.newSkipNullsOnWrite)
 }
 
 /**
@@ -272,14 +260,13 @@ final case class ColumnFamily private[express] (
 @ApiAudience.Public
 @ApiStability.Experimental
 final case class ColumnRequestOptions private[express] (
-    maxVersions: Int = 1,
-    // Not accessible to end-users because the type is soon to be replaced by a
-    // KijiExpress-specific implementation.
-    private[express] val filter: Option[KijiColumnFilter] = None,
-    replacementSlice: Option[KijiSlice[_]] = None)
+  maxVersions: Int = 1,
+  // Not accessible to end-users because the type is soon to be replaced by a
+  // KijiExpress-specific implementation.
+  private[express] val filter: Option[KijiColumnFilter] = None,
+  replacementSlice: Option[KijiSlice[_]] = None,
+  skipNullsOnWrite: Boolean = false)
     extends Serializable {
-      def newWithReplacement(
-          newReplacement: Option[KijiSlice[_]]): ColumnRequestOptions = {
-        new ColumnRequestOptions(maxVersions, filter, newReplacement)
-      }
+  def newWithReplacement(newReplacement: Option[KijiSlice[_]]): ColumnRequestOptions = copy(replacementSlice = newReplacement)
+  def newSkipNullsOnWrite = copy(skipNullsOnWrite = true)
 }
