@@ -32,6 +32,7 @@ import org.apache.hadoop.mapred.JobConf
 
 import org.kiji.express.flow.framework.KijiTap
 import org.kiji.express.flow.framework.LocalKijiTap
+import org.kiji.express.util.AvroTupleConversions
 import org.kiji.express.util.PipeConversions
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
@@ -48,7 +49,10 @@ import org.kiji.annotations.Inheritance
 @ApiAudience.Public
 @ApiStability.Experimental
 @Inheritance.Extensible
-class KijiJob(args: Args = Args(Nil)) extends Job(args) with PipeConversions {
+class KijiJob(args: Args = Args(Nil))
+    extends Job(args)
+    with PipeConversions
+    with AvroTupleConversions {
   override def validateSources(mode: Mode): Unit = {
     val taps: List[Tap[_, _, _]] =
         flowDef.getSources.values.asScala.toList ++

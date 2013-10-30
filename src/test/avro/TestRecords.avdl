@@ -26,4 +26,10 @@ protocol Testing {
     /** hash_size field exists in HasSpec, so we are able to read it with this specific record. */
     int hash_size;
   }
+
+  record SimpleRecord {
+    long l;
+    string s;
+    string o = "default-value";
+  }
 }
