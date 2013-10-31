@@ -240,6 +240,7 @@ object AvroUtil {
       case d: java.lang.Double => d
       // bytes
       case bb: java.nio.ByteBuffer => bb.array()
+      case bs: Array[Byte] => bs
       // string
       case s: java.lang.CharSequence => s.toString
       // array
@@ -482,7 +483,7 @@ object AvroUtil {
       case f: Float => f.asInstanceOf[java.lang.Float]
       case d: Double => d.asInstanceOf[java.lang.Double]
       case s: String => s
-      case bytes: Array[Byte] => java.nio.ByteBuffer.wrap(bytes)
+      case bs: Array[Byte] => bs
       case l: List[_] => {
         l.map { elem => scalaToJava(elem) }
             .asJava

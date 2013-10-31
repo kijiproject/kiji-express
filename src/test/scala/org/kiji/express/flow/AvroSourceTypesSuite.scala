@@ -98,7 +98,10 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
     testExpressReadWrite[Long]("counter", 13L)
   }
 
-  test("raw bytes type column results in a KijiSlice[Array[Byte]]") {}
+  test("raw bytes type column results in a KijiSlice[Array[Byte]]") {
+    testExpressReadWrite[Array[Byte]]("raw", "Who do voodoo?".getBytes("UTF8"))
+  }
+
   test("null avro type column results in a KijiSlice[Null]") {}
   test("boolean avro type column results in a KijiSlice[Boolean]") {}
   test("int avro type column results in a KijiSlice[Int]") {}
