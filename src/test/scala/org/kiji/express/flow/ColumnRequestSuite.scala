@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 
+import org.apache.avro.Schema
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
@@ -36,7 +37,8 @@ class ColumnRequestSuite extends FunSuite {
   def filter: KijiColumnFilter = new RegexQualifierColumnFilter(".*")
   val colFamily = "myfamily"
   val colQualifier = "myqualifier"
-  val qualifierSelector = "qualifierSym"
+  val qualifierSelector = 'qualifierSym
+  val schema = Some(Schema.create(Schema.Type.LONG))
 
   // TODO(CHOP-37): Test with different filters once the new method of specifying filters
   // correctly implements the .equals() and hashCode() methods.
@@ -49,7 +51,7 @@ class ColumnRequestSuite extends FunSuite {
       qualifier = colQualifier,
       maxVersions = maxVersions,
       filter = Some(filter)
-  ).asInstanceOf[QualifiedColumnRequestInput]
+  )
 
   test("Fields of a ColumnFamilyRequestInput are the same as those it is constructed with.") {
     val col: ColumnFamilyRequestInput = new ColumnFamilyRequestInput(family = colFamily)
@@ -63,23 +65,22 @@ class ColumnRequestSuite extends FunSuite {
   }
 
   test("Fields of a ColumnFamilyRequestOutput are the same as those it is constructed with.") {
-    val col: ColumnFamilyRequestOutput = new ColumnFamilyRequestOutput(
-        family = colFamily,
-        qualifierSelector = qualifierSelector
-    )
+    val col: ColumnFamilyRequestOutput = ColumnFamilyRequestOutput(colFamily, qualifierSelector)
     assert(colFamily === col.family)
     assert(qualifierSelector === col.qualifierSelector)
+    assert(None === col.schema)
   }
 
-  test("ColumnRequestOutput factory method creates ColumnFamilyRequestOutput.") {
-    val col = ColumnRequestOutput(colFamily, qualifierSelector=Some(qualifierSelector))
-    assert(col.isInstanceOf[ColumnFamilyRequestOutput])
-    assert(colFamily === col.asInstanceOf[ColumnFamilyRequestOutput].family)
+  test("ColumnFamilyRequestOutput factory method creates ColumnFamilyRequestOutput.") {
+    val col = ColumnFamilyRequestOutput(colFamily, qualifierSelector, schema.get)
+
+    assert(colFamily === col.family)
+    assert(qualifierSelector === qualifierSelector)
+    assert(schema === col.schema)
   }
 
   test("Fields of a QualifiedColumnRequestInput are the same as those it is constructed with.") {
     val col: QualifiedColumnRequestInput = new QualifiedColumnRequestInput(colFamily, colQualifier)
-
     assert(colFamily === col.family)
     assert(colQualifier === col.qualifier)
   }
@@ -97,13 +98,14 @@ class ColumnRequestSuite extends FunSuite {
 
     assert(colFamily === col.family)
     assert(colQualifier === col.qualifier)
+    assert(None === col.schema)
   }
 
-  test("ColumnRequestOutput factory method creates QualifiedColumnRequestOutput.") {
-    val col = QualifiedColumnRequestOutput(colFamily, colQualifier)
-    assert(col.isInstanceOf[QualifiedColumnRequestOutput])
-    assert(colQualifier === col.asInstanceOf[QualifiedColumnRequestOutput].qualifier)
-    assert(colFamily === col.asInstanceOf[QualifiedColumnRequestOutput].family)
+  test("QualifiedColumnRequestOutput factory method creates QualifiedColumnRequestOutput.") {
+    val col = QualifiedColumnRequestOutput(colFamily, colQualifier, schema.get)
+    assert(colQualifier === col.qualifier)
+    assert(colFamily === col.family)
+    assert(schema === col.schema)
   }
 
   test("Two ColumnFamilys with the same parameters are equal and hash to the same value.") {

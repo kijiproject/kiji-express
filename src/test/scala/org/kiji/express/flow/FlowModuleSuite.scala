@@ -44,12 +44,12 @@ class FlowModuleSuite extends FunSuite {
   test("Flow module forbids creating an output map-type column with a qualifier in the column "
       + "name.") {
     intercept[KijiInvalidNameException] {
-      val colReq = new ColumnFamilyRequestOutput("info:word", "foo")
+      val colReq = new ColumnFamilyRequestOutput("info:word", 'foo)
     }
   }
 
   test("Flow module permits creating an output map-type column specifying the qualifier field") {
-    val colReq = new ColumnFamilyRequestOutput("searches", "terms")
+    val colReq = new ColumnFamilyRequestOutput("searches", 'terms)
   }
 
   test("Flow module permits specifying a qualifier regex on map-type columns requests.") {

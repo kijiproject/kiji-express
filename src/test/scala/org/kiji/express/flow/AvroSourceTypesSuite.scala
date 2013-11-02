@@ -49,20 +49,19 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
   val reader: KijiTableReader = table.openTableReader()
   val writer: KijiTableWriter = table.openTableWriter()
 
-  val timestamp = 100L
-  val family = "family"
+  val family = "strict"
 
   private def entityId(s: String) = table.getEntityId(s)
 
   private def writeValue[T](eid: String, column: String, value: T) = {
-    writer.put(entityId(eid), family, column, timestamp, value)
+    writer.put(entityId(eid), family, column, value)
     writer.flush()
   }
 
   private def getValue[T](eid: String, column: String): T = {
     val get = reader.get(entityId(eid), KijiDataRequest.create(family, column))
-    require(get.containsCell(family, column, timestamp)) // Require the cell exists for null case
-    get.getValue(family, column, timestamp)
+    require(get.containsColumn(family, column)) // Require the cell exists for null case
+    get.getMostRecentValue(family, column)
   }
 
   /**
@@ -80,7 +79,7 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
   private def testExpressReadWrite[T](column: String, value: T) = {
     val input = column + "-in"
     val output = column + "-out"
-    val colfam = "family:" + column
+    val colfam = family + ":" + column
     writeValue(input, column, value)
 
     class ReadWriteJob(args: Args) extends KijiJob(args) {

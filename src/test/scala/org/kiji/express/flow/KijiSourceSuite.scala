@@ -453,7 +453,7 @@ class KijiSourceSuite
     // Build test job.
     val testSource = KijiInput(
         uri,
-        Map((ColumnRequestInput("family:column1", maxVersions=all) -> 'word)))
+        Map(ColumnRequestInput("family:column1", maxVersions=all) -> 'word))
     JobTest(new AvroToScalaChecker(testSource)(_))
       .arg("input", uri)
       .arg("output", "outputFile")
@@ -528,8 +528,8 @@ class KijiSourceSuite
         loggingInterval = 1000,
         inputColumns = Map('records -> ColumnRequestInput(
           "family:column3", avroClass=Some(classOf[SpecificRecordTest]))),
-        outputColumns = Map('records -> ColumnRequestOutput(
-          "family:column3")))
+        outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3"))
+    )
 
     val jobTest = JobTest(new SpecificAvroReadJob(_))
         .arg("input", uri)
@@ -622,7 +622,7 @@ class KijiSourceSuite
         .arg("table", uri)
         .source(TextLine("inputFile"), mapTypeInput)
         .sink(KijiOutput(uri, Map('resultCount ->
-            new ColumnFamilyRequestOutput("searches", "terms"))))(validateMapWrite)
+            new ColumnFamilyRequestOutput("searches", 'terms))))(validateMapWrite)
 
     // Run the test.
     jobTest.run.finish
@@ -893,8 +893,7 @@ object KijiSourceSuite {
         loggingInterval = 1000,
         inputColumns = Map('records -> ColumnRequestInput(
           "family:column3", avroClass=Some(classOf[SpecificRecordTest]))),
-        outputColumns = Map('records -> ColumnRequestOutput(
-          "family:column3")))
+        outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3")))
     ksource
         .map('records -> 'hashSizeField) { slice: KijiSlice[AvroValue] =>
           val Cell(_, _, _, record) = slice.getFirst()
@@ -951,7 +950,7 @@ object KijiSourceSuite {
         }
         // Write the results to the "family:column1" column of a Kiji table.
         .write(KijiOutput(args("table"), Map('resultCount ->
-          new ColumnFamilyRequestOutput("searches", "terms"))))
+          new ColumnFamilyRequestOutput("searches", 'terms))))
   }
 
   /**

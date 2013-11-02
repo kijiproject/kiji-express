@@ -379,14 +379,13 @@ object KijiScheme {
    */
   // TODO: BREAK UP INTO SMALL FUNCTIONS / ORGANIZE BETTER
   private[express] def rowToTuple(
-      inputColumns: Map[String, ColumnRequestInput],
+      columns: Map[String, ColumnRequestInput],
       fields: Fields,
       timestampField: Option[Symbol],
       row: KijiRowData,
       tableUri: KijiURI,
       configuration: Configuration): Option[Tuple] = {
     val result: Tuple = new Tuple()
-    val iterator = fields.iterator().asScala
 
     // Add the row's EntityId to the tuple.
     val entityId: EntityId = EntityId.fromJavaEntityId(row.getEntityId())
@@ -407,13 +406,13 @@ object KijiScheme {
     val bHaveAllData = fields.iterator().asScala
         // Get rid of entity Id and timestamp
         .filter { field => field.toString != entityIdField  }
-        .filter { field => field.toString != timestampField.getOrElse(Symbol("")).name }
+        .filter { field => field.toString != timestampField.getOrElse("") }
         // Get the column requests for the specified fields
-        .map { field => inputColumns(field.toString) }
+        .map { field => columns(field.toString) }
         // If any column request lacks a default value and points to an element of the KijiRowData
         // without a value, then return None for the entire row
         .map { colreq => rowHasDataOrDefaultForColumnRequest(colreq) }
-        .foldLeft(true) { (total, curr) => total && curr }
+        .forall(identity)
 
     if (!bHaveAllData) return None
 
@@ -451,10 +450,10 @@ object KijiScheme {
     }
     // Get rid of the entity id and timestamp fields, then map over each field to add a column
     // to the tuple.
-    iterator
+    fields.iterator().asScala
         .filter { field => field.toString != entityIdField  }
-        .filter { field => field.toString != timestampField.getOrElse(Symbol("")).name }
-        .map { field => inputColumns(field.toString) }
+        .filter { field => field.toString != timestampField.getOrElse("") }
+        .map { field => columns(field.toString) }
         // Build the tuple, by adding each requested value into result.
         .foreach {
           case cf: ColumnFamilyRequestInput => { rowToTupleColumnFamily(cf) }
@@ -481,7 +480,7 @@ object KijiScheme {
    * @param configuration identifying the cluster to use when building EntityIds.
    */
   private[express] def putTuple(
-      outputColumns: Map[String, ColumnRequestOutput],
+      columns: Map[String, ColumnRequestOutput],
       tableUri: KijiURI,
       kiji: Kiji,
       timestampField: Option[Symbol],
@@ -489,7 +488,6 @@ object KijiScheme {
       writer: KijiTableWriter,
       layout: KijiTableLayout,
       configuration: Configuration) {
-    val iterator = outputColumns.keys.iterator
 
     // Get the entityId.
     val entityId: EntityId =
@@ -501,52 +499,13 @@ object KijiScheme {
       case None => System.currentTimeMillis()
     }
 
-    val layoutVersion = ProtocolVersion.parse(layout.getDesc.getVersion)
-    val validationEnabled =  { layoutVersion.compareTo(Versions.LAYOUT_1_3_0) >= 0 }
-    val schemaTable = kiji.getSchemaTable
-
     val eidFactory = EntityIdFactory.getFactory(layout)
 
-    /**
-     * Gets the schema from the schemaIdOption if it exists, otherwise tries to resolve the default
-     * reader schema for the table.  Returns None if neither of those are possible.
-     *
-     * @param getColumnName() of the column to try to get the schema for.
-     * @param schemaSpecOption of the schema to try to resolve.
-     * @return a schema to use for writing, if possible.
-     */
-    def getSchemaIfPossible(
-        columnName: KijiColumnName,
-        schemaSpecOption: Option[WriterSchemaSpec]
-    ): Option[Schema] = {
-      schemaSpecOption match {
-        case Some(schemaSpec) => {
-          if (schemaSpec.useDefaultReader) {
-            return Some(layout.getCellSpec(columnName).getDefaultReaderSchema)
-          } else {
-            return Some(schemaTable.getSchema(schemaSpec.schemaId.get))
-          }
-        }
-        case None => { // The only situation in which no schemaId specified is okay
-          // is if avro validation policy is schema-1.0 compatibility mode.
-          if (
-              validationEnabled &&
-              layout.getCellSpec(columnName).getCellSchema.getAvroValidationPolicy
-                  !=  AvroValidationPolicy.SCHEMA_1_0) {
-            throw new InvalidKijiTapException(
-              "Column '%s' must have a schema specified.".format(columnName))
-          } else {
-            return None
-          }
-        }
-      }
-    }
-
-    iterator
+    columns.keys.iterator
         .foreach { fieldName =>
             val value = output.getObject(fieldName.toString)
-            val col: ColumnRequestOutput = outputColumns(fieldName.toString)
-            val schemaSpec = col.writerSchemaSpec
+            val col: ColumnRequestOutput = columns(fieldName.toString)
+            val schema = col.schema
 
             val family = col match {
               case qc: QualifiedColumnRequestOutput => qc.family
@@ -557,10 +516,9 @@ object KijiScheme {
             val qualifier = col match {
               case qc: QualifiedColumnRequestOutput => qc.qualifier
               case cf: ColumnFamilyRequestOutput =>
-                output.getObject(cf.qualifierSelector.toString).asInstanceOf[String]
+                output.getString(cf.qualifierSelector.toString)
             }
 
-            val schema: Option[Schema] = getSchemaIfPossible(col.getColumnName, schemaSpec)
             writer.put(entityId.toJavaEntityId(eidFactory),
                 family,
                 qualifier,
@@ -656,11 +614,11 @@ object KijiScheme {
    *     Use None if all values should be written at the current time.
    * @return a collection of fields created from the parameters.
    */
-  private[express] def buildSinkFields(outputColumns: Map[String, ColumnRequestOutput],
+  private[express] def buildSinkFields(columns: Map[String, ColumnRequestOutput],
       timestampField: Option[Symbol]): Fields = {
     getFieldArray(Seq(entityIdField)
-        ++ outputColumns.keys
-        ++ extractQualifierSelectors(outputColumns)
+        ++ columns.keys
+        ++ extractQualifierSelectors(columns)
         ++ timestampField.map { _.name } )
   }
 

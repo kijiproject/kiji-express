@@ -174,14 +174,9 @@ final class KijiSource private[express] (
           convertKeysToStrings(inputColumns))
       val testingInputColumnsFromWrites = inputColumnRequestsAllData(
           convertKeysToStrings(outputColumns)
-          .mapValues { x: ColumnRequestOutput => ColumnRequestInput(x.getColumnName.toString) })
+          .mapValues { x: ColumnRequestOutput => ColumnRequestInput(x.columnName.toString) })
       testingInputColumnsFromReads ++ testingInputColumnsFromWrites
     }
-
-    def getInputColumnsToCheckWrites(icols: Map[String, ColumnRequestOutput]):
-        Map[String, ColumnRequestInput] = { icols.mapValues( { x: ColumnRequestOutput =>
-            ColumnRequestInput(x.getColumnName.toString())
-        })}
 
     val tap: Tap[_, _, _] = mode match {
       // Production taps.
@@ -202,7 +197,7 @@ final class KijiSource private[express] (
                 timestampField,
                 loggingInterval,
                 getInputColumnsForTesting,
-                outputColumnRequestsAllData(convertKeysToStrings(outputColumns)))
+                convertKeysToStrings(outputColumns))
 
             new KijiTap(tableUri, scheme).asInstanceOf[Tap[_, _, _]]
           }
@@ -229,7 +224,7 @@ final class KijiSource private[express] (
                 timeRange,
                 timestampField,
                 getInputColumnsForTesting,
-                outputColumnRequestsAllData(convertKeysToStrings(outputColumns)))
+                convertKeysToStrings(outputColumns))
 
             new LocalKijiTap(tableUri, scheme).asInstanceOf[Tap[_, _, _]]
           }
@@ -378,13 +373,6 @@ object KijiSource {
         .map(identity)
   }
 
-  private def outputColumnRequestsAllData(
-      columns: Map[String, ColumnRequestOutput]): Map[String, ColumnRequestOutput] = {
-    columns.mapValues(_.newGetAllData)
-        // Need this to make the Map serializable (issue with mapValues)
-        .map(identity)
-  }
-
   /**
    * A LocalKijiScheme that loads rows in a table into the provided buffer. This class
    * should only be used during tests.
@@ -406,7 +394,7 @@ object KijiSource {
           timeRange,
           timestampField,
           inputColumnRequestsAllData(inputColumns),
-          outputColumnRequestsAllData(outputColumns)) {
+          outputColumns) {
     override def sinkCleanup(
         process: FlowProcess[Properties],
         sinkCall: SinkCall[OutputContext, OutputStream]) {

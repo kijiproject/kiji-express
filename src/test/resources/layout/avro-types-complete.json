@@ -37,7 +37,7 @@
     bloom_type: "ROW",
     compression_type: "GZ",
     families: [ {
-      name: "family",
+      name: "strict",
       columns: [ {
         name: "counter",
         column_schema: {

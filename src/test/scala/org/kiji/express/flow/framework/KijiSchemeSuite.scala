@@ -33,7 +33,7 @@ import org.kiji.express.KijiSlice
 import org.kiji.express.KijiSuite
 import org.kiji.express.flow.All
 import org.kiji.express.flow.ColumnRequestInput
-import org.kiji.express.flow.ColumnRequestOutput
+import org.kiji.express.flow.QualifiedColumnRequestOutput
 import org.kiji.express.util.GenericCellSpecs
 import org.kiji.schema.EntityIdFactory
 
@@ -50,7 +50,7 @@ class KijiSchemeSuite extends KijiSuite {
     val reader = table.getReaderFactory.openTableReader(GenericCellSpecs(table))
 
     // Set up the columns and fields.
-    val columnsOutput = Map("columnSymbol" -> ColumnRequestOutput("family:column3"))
+    val columnsOutput = Map("columnSymbol" -> QualifiedColumnRequestOutput("family:column3"))
     val columnsInput = Map("columnSymbol" -> ColumnRequestInput("family:column3"))
     val sourceFields = KijiScheme.buildSourceFields(columnsOutput.keys)
 
