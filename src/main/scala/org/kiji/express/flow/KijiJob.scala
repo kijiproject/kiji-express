@@ -94,14 +94,8 @@ class KijiJob(args: Args = Args(Nil))
     val baseJavaOpts = baseConfig.get("mapred.child.java.opts").getOrElse("")
     val newJavaOpts = (baseJavaOpts
         + " -Dorg.kiji.schema.impl.AvroCellEncoder.SCHEMA_VALIDATION=DISABLED")
-    val baseSerializerOpts = baseConfig
-        .get(TupleSerializationProps.HADOOP_IO_SERIALIZATIONS)
-        .getOrElse("")
-    val newSerializerOpts = baseSerializerOpts +
-        ",org.kiji.express.flow.serialization.SchemaSerializer"
 
     baseConfig ++ Map("mapred.child.java.opts" -> newJavaOpts)
-    baseConfig ++ Map(TupleSerializationProps.HADOOP_IO_SERIALIZATIONS -> newSerializerOpts)
 
     baseConfig
   }

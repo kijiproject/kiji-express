@@ -165,7 +165,7 @@ class KijiSourceSuite
         .source(TextLine("inputFile"), importMultipleTimestamps)
         .sink(KijiOutput(uri, 'timestamp, 'word -> "family:column1"))(validateMultipleTimestamps)
         // Run the test job.
-        .run
+        .runHadoop
         .finish
   }
 

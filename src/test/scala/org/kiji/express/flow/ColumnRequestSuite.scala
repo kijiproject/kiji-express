@@ -34,6 +34,8 @@ import org.kiji.schema.filter.RegexQualifierColumnFilter
 
 @RunWith(classOf[JUnitRunner])
 class ColumnRequestSuite extends FunSuite {
+  import ColumnRequestSuite._
+
   def filter: KijiColumnFilter = new RegexQualifierColumnFilter(".*")
   val colFamily = "myfamily"
   val colQualifier = "myqualifier"
@@ -80,7 +82,7 @@ class ColumnRequestSuite extends FunSuite {
   }
 
   test("Fields of a QualifiedColumnRequestInput are the same as those it is constructed with.") {
-    val col: QualifiedColumnRequestInput = new QualifiedColumnRequestInput(colFamily, colQualifier)
+    val col: QualifiedColumnRequestInput = QualifiedColumnRequestInput(colFamily, colQualifier)
     assert(colFamily === col.family)
     assert(colQualifier === col.qualifier)
   }
@@ -94,7 +96,7 @@ class ColumnRequestSuite extends FunSuite {
 
   test("Fields of a QualifiedColumnRequestOutput are the same as those it is constructed with.") {
     val col: QualifiedColumnRequestOutput =
-        new QualifiedColumnRequestOutput(colFamily, colQualifier)
+        QualifiedColumnRequestOutput(colFamily, colQualifier)
 
     assert(colFamily === col.family)
     assert(colQualifier === col.qualifier)
@@ -124,20 +126,6 @@ class ColumnRequestSuite extends FunSuite {
     assert(col1.hashCode() === col2.hashCode())
   }
 
-  test("A column must be serializable.") {
-    // Serialize and deserialize using java ObjectInputStream and ObjectOutputStream.
-    val col = new QualifiedColumnRequestInput(colFamily, colQualifier)
-    val bytesOut = new ByteArrayOutputStream()
-    val out = new ObjectOutputStream(bytesOut)
-    out.writeObject(col)
-    val serializedColumn = bytesOut.toByteArray()
-    val bytesIn = new ByteArrayInputStream(serializedColumn)
-    val in = new ObjectInputStream(bytesIn)
-    val deserializedColumn = in.readObject()
-
-    assert(col === deserializedColumn)
-  }
-
   test("maxVersions is the same as constructed with.") {
     assert(maxVersions == colWithOptions.maxVersions)
   }
@@ -160,5 +148,54 @@ class ColumnRequestSuite extends FunSuite {
     )
     assert(col2 === colWithOptions)
     assert(col2.hashCode() === colWithOptions.hashCode())
+  }
+
+
+  test("A QualifiedColumnRequestInput must be serializable.") {
+    // Serialize and deserialize using java ObjectInputStream and ObjectOutputStream.
+    val col = new QualifiedColumnRequestInput(colFamily, colQualifier)
+    val copy = copyBySerialization(col)
+    assert(col === copy)
+  }
+
+  test("A QualfifedColumnRequestOutput must be serializable.") {
+    val req = QualifiedColumnRequestOutput("foo", "bar", None)
+    val copy = copyBySerialization(req)
+    assertCROEqual(req, copy)
+  }
+
+  test("A QualfifedColumnRequestOutput with a schema must be serializable.") {
+    val req = QualifiedColumnRequestOutput("foo", "bar", Some(Schema.create(Schema.Type.FLOAT)))
+    val copy = copyBySerialization(req)
+    assertCROEqual(req, copy)
+  }
+
+  test("A ColumnFamilyRequestOutput must be serializable.") {
+    val req = ColumnFamilyRequestOutput("foo", 'bar, None)
+    val copy = copyBySerialization(req)
+    assertCROEqual(req, copy)
+  }
+  test("A ColumnFamilyRequestOutput with a schema must be serializable.") {
+    val req = ColumnFamilyRequestOutput("foo", 'bar, Some(Schema.create(Schema.Type.FLOAT)))
+    val copy = copyBySerialization(req)
+    assertCROEqual(req, copy)
+  }
+
+}
+
+object ColumnRequestSuite {
+
+  def assertCROEqual(a: ColumnRequestOutput, b: ColumnRequestOutput)
+= {
+    assert(a.family == b.family)
+    assert(a.columnName == b.columnName)
+    assert(a.schema == b.schema)
+    assert(b.encode != null) // No way to easily test function equality. Ensure it was deserialized.
+  }
+
+  def copyBySerialization[T <: Serializable](obj: T): T = {
+    val baos = new ByteArrayOutputStream()
+    new ObjectOutputStream(baos).writeObject(obj)
+    new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray)).readObject().asInstanceOf[T]
   }
 }

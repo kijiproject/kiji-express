@@ -19,7 +19,7 @@
 
 package org.kiji.express.flow
 
-import com.twitter.scalding.Args
+import com.twitter.scalding.{HadoopTest, Mode, Args}
 import org.apache.hadoop.conf.Configuration
 import org.junit.runner.RunWith
 import org.kiji.schema.layout.KijiTableLayout
@@ -71,8 +71,9 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
     val colfam = family + ":" + column
     writeValue(input, column, value)
 
-
-    new ReadWriteJob(uri, colfam, output, Args("--hdfs")).run
+    val args = Args("--hdfs")
+    Mode.mode = Mode(args, conf)
+    new ReadWriteJob(uri, colfam, output, args).run
     assert(value === getValue[T](output, column))
   }
 

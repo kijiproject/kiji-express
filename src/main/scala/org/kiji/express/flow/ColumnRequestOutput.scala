@@ -59,7 +59,7 @@ trait ColumnRequestOutput {
    * Make a best effort attempt to encode a provided value to a type that will be compatible with
    * the column.  If no such conversion can be made, the original value will be returned.
    */
-  def encode: Any => Any
+  def encode: Any => Any = schema.map(AvroUtil.avroEncoder).getOrElse(identity)
 }
 
 /**
@@ -67,20 +67,19 @@ trait ColumnRequestOutput {
  *
  * @param family The group-type family containing the column to write to.
  * @param qualifier The column qualifier to write to.
- * @param schema The schema to write with.
+ * @param tSchema The schema to write with.
  */
 @ApiAudience.Public
 @ApiStability.Experimental
-final case class QualifiedColumnRequestOutput (
+final case class QualifiedColumnRequestOutput(
     family: String,
     qualifier: String,
-    schema: Option[Schema] = None)
-
-    extends ColumnRequestOutput {
-
-  override def columnName: KijiColumnName = new KijiColumnName(family, qualifier)
-
-  override val encode: Any => Any = schema.map(AvroUtil.avroEncoder).getOrElse(identity)
+    @transient tSchema: Option[Schema] = None
+) extends ColumnRequestOutput {
+  // Schema is not Serializable, so only hold the JSON representation in non-transient state
+  val schemaJson = tSchema.map(_.toString(false))
+  lazy val schema = schemaJson.map(new Schema.Parser().parse)
+  @transient lazy val columnName: KijiColumnName = new KijiColumnName(family, qualifier)
 }
 
 /**
@@ -160,7 +159,7 @@ object QualifiedColumnRequestOutput {
  *
  * @param family The map-type family to write to.
  * @param qualifierSelector The field in the Express flow indicating what column to write to.
- * @param schema The schema to use for writes.  If None, the schema is resolved from the data
+ * @param tSchema The schema to use for writes.  If None, the schema is resolved from the data
  *               type at runtime.
  */
 @ApiAudience.Public
@@ -168,15 +167,15 @@ object QualifiedColumnRequestOutput {
 final case class ColumnFamilyRequestOutput(
     family: String,
     qualifierSelector: Symbol,
-    schema: Option[Schema] = None
+    @transient tSchema: Option[Schema] = None
 ) extends ColumnRequestOutput {
   if (family.contains(':')) {
     throw new KijiInvalidNameException("Cannot have a ':' in family name for column family request")
   }
-
-  override def columnName: KijiColumnName = new KijiColumnName(family)
-
-  override val encode: Any => Any = schema.map(AvroUtil.avroEncoder).getOrElse(identity)
+  // Schema is not Serializable, so only hold the JSON representation in non-transient state
+  val schemaJson = tSchema.map(_.toString(false))
+  lazy val schema = schemaJson.map(new Schema.Parser().parse)
+  lazy val columnName: KijiColumnName = new KijiColumnName(family)
 }
 
 /**
