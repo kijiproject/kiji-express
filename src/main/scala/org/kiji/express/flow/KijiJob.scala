@@ -37,6 +37,7 @@ import org.kiji.express.util.PipeConversions
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.annotations.Inheritance
+import cascading.tuple.hadoop.TupleSerializationProps
 
 /**
  * KijiJob is KijiExpress's extension of Scalding's `Job`, and users should extend it when writing
@@ -71,29 +72,37 @@ class KijiJob(args: Args = Args(Nil))
     }
 
     // Validate that the Kiji parts of the sources (tables, columns) are valid and exist.
-    taps.foreach { tap =>
-      tap match {
-        case kijiTap: KijiTap => kijiTap.validate(new JobConf(conf))
-        case localKijiTap: LocalKijiTap => {
-          val properties: Properties = new Properties()
-          properties.putAll(HadoopUtil.createProperties(conf))
-          localKijiTap.validate(properties)
-        }
-        case _ => // No Kiji parts to verify.
+    taps.foreach {
+      case kijiTap: KijiTap => kijiTap.validate(new JobConf(conf))
+      case localKijiTap: LocalKijiTap => {
+        val properties: Properties = new Properties()
+        properties.putAll(HadoopUtil.createProperties(conf))
+        localKijiTap.validate(properties)
       }
+      case _ => // No Kiji parts to verify.
     }
 
     // Call any validation that scalding's Job class does.
     super.validateSources(mode)
+
   }
 
   override def config(implicit mode: Mode): Map[AnyRef, AnyRef] = {
     // We configure as is done in Scalding's Job, but then append to mapred.child.java.opts to
     // disable schema validation.
     val baseConfig = super.config(mode)
-    val baseJavaOpts = baseConfig.get("mapred.child.java.opts").getOrElse("").toString()
+    val baseJavaOpts = baseConfig.get("mapred.child.java.opts").getOrElse("")
     val newJavaOpts = (baseJavaOpts
         + " -Dorg.kiji.schema.impl.AvroCellEncoder.SCHEMA_VALIDATION=DISABLED")
+    val baseSerializerOpts = baseConfig
+        .get(TupleSerializationProps.HADOOP_IO_SERIALIZATIONS)
+        .getOrElse("")
+    val newSerializerOpts = baseSerializerOpts +
+        ",org.kiji.express.flow.serialization.SchemaSerializer"
+
     baseConfig ++ Map("mapred.child.java.opts" -> newJavaOpts)
+    baseConfig ++ Map(TupleSerializationProps.HADOOP_IO_SERIALIZATIONS -> newSerializerOpts)
+
+    baseConfig
   }
 }

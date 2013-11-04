@@ -19,11 +19,13 @@
 
 package org.kiji.express.flow
 
+import scala.collection.JavaConversions
+
 import cascading.tuple.Fields
-import com.twitter.scalding.Args
-import com.twitter.scalding.TupleConverter
-import com.twitter.scalding.TupleSetter
-import com.twitter.scalding.IterableSource
+import com.twitter.scalding._
+import org.apache.avro.Schema
+import org.apache.avro.generic.GenericData.Fixed
+import org.apache.avro.generic.GenericData
 import org.apache.hadoop.conf.Configuration
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -38,10 +40,8 @@ import org.kiji.schema.KijiColumnName
 import org.kiji.express.EntityId
 import org.kiji.express.KijiSuite
 import org.kiji.express.util.AvroTypesComplete
-import org.apache.avro.generic.GenericData
-import scala.collection.JavaConversions
-import org.apache.avro.Schema
-import org.apache.avro.generic.GenericData.Fixed
+import com.twitter.scalding.IterableSource
+
 
 @RunWith(classOf[JUnitRunner])
 class WriterSchemaSuite extends KijiClientTest with KijiSuite {
@@ -92,8 +92,7 @@ class WriterSchemaSuite extends KijiClientTest with KijiSuite {
     }
   }
 
-  def typeValueVerifier[T](input: T, retrieved: T) = {
-    assert(retrieved.isInstanceOf[T])
+  def valueVerifier[T](input: T, retrieved: T) = {
     assert(input === retrieved)
   }
 
@@ -130,10 +129,10 @@ class WriterSchemaSuite extends KijiClientTest with KijiSuite {
    */
   def testWrite[T](values: Iterable[T],
                    output: ColumnRequestOutput,
-                   verifier: (T, T) => Unit =  typeValueVerifier[T] _) {
+                   verifier: (T, T) => Unit =  valueVerifier _) {
     val outputSource = KijiOutput(uri, Map('value -> output))
     val inputs = eids.zip(values)
-    expressWrite(new Fields("entityId", "value"), inputs, outputSource)
+    expressWrite(conf, new Fields("entityId", "value"), inputs, outputSource)
     verify(inputs, output.columnName, verifier)
   }
 
@@ -292,15 +291,17 @@ object WriterSchemaSuite {
    * @param setter necessary for some implicit shenanigans.  Don't explicitly pass in.
    * @tparam A type of values to be written.
    */
-  def expressWrite[A](fs: Fields, inputs: Iterable[A], outputSource: KijiSource)
+  def expressWrite[A](conf: Configuration,
+                      fs: Fields,
+                      inputs: Iterable[A],
+                      outputSource: KijiSource)
                      (implicit setter: TupleSetter[A]) = {
-
-    class IdentityJob(
-        fs: Fields,
-        inputs: Iterable[A],
-        output: KijiSource, args: Args) extends KijiJob(args) {
-      IterableSource(inputs, fs)(setter, implicitly[TupleConverter[A]]).write(output)
-    }
     new IdentityJob(fs, inputs, outputSource, Args("--hdfs")).run
   }
+}
+
+// Must be its own top-level class for mystical serialization reasons
+class IdentityJob[A](fs: Fields, inputs: Iterable[A], output: KijiSource, args: Args)
+                    (implicit setter: TupleSetter[A], mode: Mode) extends KijiJob(args) {
+  IterableSource(inputs, fs)(setter, implicitly[TupleConverter[A]]).write(output)
 }

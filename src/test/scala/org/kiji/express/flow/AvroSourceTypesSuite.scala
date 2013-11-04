@@ -64,17 +64,6 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
     get.getMostRecentValue(family, column)
   }
 
-  /**
-   * Unwraps latest value from [[org.kiji.express.KijiSlice]] and verifies that the type is as
-   * expected.
-   * @param slice [[org.kiji.express.KijiSlice]] containing value to unwrap.
-   * @tparam T expected type of value contained in KijiSlice.
-   * @return unwrapped value of type T.
-   */
-  private def unwrap[T](slice: KijiSlice[T]): (T, Long) = {
-    val cell = slice.getFirst()
-    (cell.datum, cell.version)
-  }
 
   private def testExpressReadWrite[T](column: String, value: T) = {
     val input = column + "-in"
@@ -82,14 +71,8 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
     val colfam = family + ":" + column
     writeValue(input, column, value)
 
-    class ReadWriteJob(args: Args) extends KijiJob(args) {
-      KijiInput(uri, colfam -> 'slice)
-          .read
-          .mapTo('slice -> ('value, 'time))(unwrap[T])
-          .map('value -> 'entityId) { _: T => EntityId(output)}
-          .write(KijiOutput(uri, 'time, 'value -> colfam))
-    }
-    new ReadWriteJob(Args("--hdfs")).run
+
+    new ReadWriteJob(uri, colfam, output, Args("--hdfs")).run
     assert(value === getValue[T](output, column))
   }
 
@@ -116,4 +99,27 @@ class AvroSourceTypesSuite extends KijiClientTest with KijiSuite {
   test("map[T] avro type column results in a KijiSlice[Map[String, T]]") {}
   test("union avro type column results in a ??? field") {}
   test("fixed avro type column results in an KijiSlice[Array[Byte]] field") {}
+}
+
+// Must be its own top-level class for mystical serialization reasons
+class ReadWriteJob[T](uri: String, colfam: String, output: String, args: Args)
+    extends KijiJob(args) {
+
+  /**
+   * Unwraps latest value from [[org.kiji.express.KijiSlice]] and verifies that the type is as
+   * expected.
+   * @param slice [[org.kiji.express.KijiSlice]] containing value to unwrap.
+   * @tparam T expected type of value contained in KijiSlice.
+   * @return unwrapped value of type T.
+   */
+  private def unwrap[T](slice: KijiSlice[T]): (T, Long) = {
+    val cell = slice.getFirst()
+    (cell.datum, cell.version)
+  }
+
+  KijiInput(uri, colfam -> 'slice)
+      .read
+      .mapTo('slice -> ('value, 'time))(unwrap[T])
+      .map('value -> 'entityId) { _: T => EntityId(output)}
+      .write(KijiOutput(uri, 'time, 'value -> colfam))
 }

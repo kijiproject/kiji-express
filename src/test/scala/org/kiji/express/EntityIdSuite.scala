@@ -216,12 +216,6 @@ class EntityIdSuite extends KijiSuite {
   }
 
   test("Runs a job that joins two pipes, on EntityIds from a table (hashed), in local mode.") {
-    for (_ <- 1 until 10) {
-      runTest()
-    }
-  }
-
-  def runTest() {
     // URI of the hashed Kiji table to use.
     val uri: String = doAndRelease(makeTestKijiTable(simpleLayout)) { table: KijiTable =>
       table.getURI().toString()
