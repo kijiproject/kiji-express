@@ -26,6 +26,7 @@ import org.kiji.annotations.ApiStability
 import org.kiji.annotations.Inheritance
 import org.kiji.schema.KijiColumnName
 import org.kiji.schema.KijiInvalidNameException
+import org.kiji.express.util.AvroUtil
 
 /**
  * Interface for all column output request specification objects.
@@ -53,6 +54,12 @@ trait ColumnRequestOutput {
    * @return
    */
   def schema: Option[Schema]
+
+  /**
+   * Make a best effort attempt to encode a provided value to a type that will be compatible with
+   * the column.  If no such conversion can be made, the original value will be returned.
+   */
+  def encode: Any => Any
 }
 
 /**
@@ -67,10 +74,13 @@ trait ColumnRequestOutput {
 final case class QualifiedColumnRequestOutput (
     family: String,
     qualifier: String,
-    schema: Option[Schema] = None
-) extends ColumnRequestOutput {
+    schema: Option[Schema] = None)
+
+    extends ColumnRequestOutput {
 
   override def columnName: KijiColumnName = new KijiColumnName(family, qualifier)
+
+  override val encode: Any => Any = schema.map(AvroUtil.avroEncoder).getOrElse(identity)
 }
 
 /**
@@ -165,6 +175,8 @@ final case class ColumnFamilyRequestOutput(
   }
 
   override def columnName: KijiColumnName = new KijiColumnName(family)
+
+  override val encode: Any => Any = schema.map(AvroUtil.avroEncoder).getOrElse(identity)
 }
 
 /**

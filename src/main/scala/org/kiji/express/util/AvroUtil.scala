@@ -28,10 +28,7 @@ import scala.collection.JavaConverters.mapAsScalaMapConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
 
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecordBuilder
-import org.apache.avro.generic.GenericData
-import org.apache.avro.generic.GenericRecord
-import org.apache.avro.generic.IndexedRecord
+import org.apache.avro.generic._
 import org.apache.avro.specific.SpecificFixed
 import org.apache.avro.specific.SpecificRecord
 
@@ -51,6 +48,23 @@ import org.kiji.express.AvroRecord
 import org.kiji.express.AvroSpecificRecord
 import org.kiji.express.AvroString
 import org.kiji.express.AvroValue
+import org.kiji.express.AvroLong
+import org.kiji.express.AvroFixed
+import org.kiji.express.AvroFloat
+import scala.Some
+import org.kiji.express.AvroList
+import org.kiji.express.AvroEnum
+import org.kiji.express.AvroDouble
+import org.kiji.express.AvroBoolean
+import org.kiji.express.AvroMap
+import org.kiji.express.AvroByteArray
+import org.kiji.express.AvroString
+import org.kiji.express.AvroSpecificRecord
+import org.kiji.express.AvroInt
+import java.nio.ByteBuffer
+import scala.collection.JavaConversions
+import org.apache.avro.util.Utf8
+import org.apache.avro.generic.GenericData.Fixed
 
 /**
  * A module with functions that can convert Java values (including Java API Avro values)
@@ -471,8 +485,7 @@ object AvroUtil {
    * @param columnValue is the value written to this column.
    * @return the converted Java type.
    */
-  private[express] def scalaToJava(
-      columnValue: Any): java.lang.Object = {
+  private[express] def scalaToJava(columnValue: Any): java.lang.Object = {
     columnValue match {
       // scalastyle:off null
       case null => null
@@ -484,18 +497,21 @@ object AvroUtil {
       case d: Double => d.asInstanceOf[java.lang.Double]
       case s: String => s
       case bs: Array[Byte] => bs
-      case l: List[_] => {
-        l.map { elem => scalaToJava(elem) }
-            .asJava
-      }
       // map
       // TODO(EXP-51): revisit conversion of maps between java and scala
       case m: Map[_, _] => {
         val convertedMap = m.map { case (key: String, value) => (key, scalaToJava(value)) }
         new java.util.TreeMap[java.lang.Object, java.lang.Object](convertedMap.asJava)
       }
+      case l: Traversable[_] => {
+        l.map { elem => scalaToJava(elem) }
+            .toList
+            .asJava
+      }
+      case l: GenericArray[_] => l
       // enum
       case e: java.lang.Enum[_] => e
+      case e: GenericData.EnumSymbol => e
       // Avro records
       case r: IndexedRecord => r
       // AvroValue
@@ -505,4 +521,98 @@ object AvroUtil {
           + columnValue.asInstanceOf[AnyRef].getClass.toString)
     }
   }
+
+  /**
+   * Provides an encoder function that will coerce a [[scala.collection.TraversableOnce]] to an
+   * [[org.apache.avro.generic.GenericData.Array]].
+   * @param schema of the array
+   * @return an encoding function for Avro array types.
+   */
+  private[express] def arrayEncoder(schema: Schema): Any => Any = {
+    require(schema.getType == Schema.Type.ARRAY)
+    return {
+      case tr: TraversableOnce[_] =>
+        new GenericData.Array(schema, tr.map(avroEncoder(schema.getElementType)).toList.asJava)
+      case other => other
+    }
+  }
+
+  /**
+   * Provides an encoder function that will coerce values to an
+   * [[org.apache.avro.generic.GenericData.EnumSymbol]] if possible.
+   * @param schema of enum type
+   * @return an encoder function for enum values.
+   */
+  private[express] def enumEncoder(schema: Schema): Any => Any = {
+    require(schema.getType == Schema.Type.ENUM)
+    val genericData = new GenericData()
+
+    return {
+      case e: Enum[_] =>
+        // Perhaps useful for the case where a user defines their own enum with the same members
+        // as defined in the schema.
+        genericData.createEnum(e.name, schema)
+      case obj: AnyRef => genericData.createEnum(obj.toString, schema)
+      case other => other
+    }
+  }
+
+  /**
+   * Provides an encoder function that will coerce values into an Avro compatible bytes format.
+   *
+   * TODO: determine if its necessary to wrapping byte arrays in ByteBuffer is necessary
+   * @param schema of bytes type
+   * @return an encoder function for bytes values
+   */
+  private[express] def bytesEncoder(schema: Schema): Any => Any = {
+    require(schema.getType == Schema.Type.BYTES)
+
+    return {
+      case bs: Array[Byte] => ByteBuffer.wrap(bs)
+      case other => other
+    }
+  }
+
+  private[express] def fixedEncoder(schema: Schema): Any => Any = {
+    require(schema.getType == Schema.Type.FIXED)
+    
+    def getBytes(bb: ByteBuffer): Array[Byte] = {
+      val backing = bb.array()
+      val remaining = bb.remaining()
+      if (remaining == backing.length) { // no need to copy
+        backing
+      } else {
+        val copy = Array.ofDim[Byte](remaining)
+        bb.get(copy)
+        copy
+      }
+    }
+
+    return {
+      case bs: Array[Byte] => new Fixed(schema, bs)
+      case bb: ByteBuffer if bb.hasArray => new Fixed(schema, getBytes(bb))
+      case other => other
+    }
+  }
+
+  /**
+   * Creates an encoder function for a given schema.  For most cases no encoding needs to be done,
+   * so the encoder is the identity function.  For the collection types that have generic
+   * implementations we can convert a scala version of the type to the generic avro version.  We
+   * don't try to catch type mismatches here; instead Schema will check if the value is compatible
+   * with the given schema.
+   * @param schema of the values that the encoder function will take.
+   * @return an encoder function that will make a best effort to encode values to a type
+   *         compatible with the given schema.
+   */
+  private[express] def avroEncoder(schema: Schema): Any => Any = {
+    schema.getType match {
+      case Schema.Type.ARRAY => arrayEncoder(schema)
+      case Schema.Type.ENUM => enumEncoder(schema)
+      case Schema.Type.BYTES => bytesEncoder(schema)
+      case Schema.Type.FIXED => fixedEncoder(schema)
+      case _ => identity
+    }
+  }
+
 }

@@ -490,8 +490,10 @@ object KijiScheme {
       configuration: Configuration) {
 
     // Get the entityId.
-    val entityId: EntityId =
-        output.getObject(entityIdField).asInstanceOf[EntityId]
+    val entityId = output
+          .getObject(entityIdField)
+          .asInstanceOf[EntityId]
+          .toJavaEntityId(EntityIdFactory.getFactory(layout))
 
     // Get a timestamp to write the values to, if it was specified by the user.
     val timestamp: Long = timestampField match {
@@ -499,31 +501,17 @@ object KijiScheme {
       case None => System.currentTimeMillis()
     }
 
-    val eidFactory = EntityIdFactory.getFactory(layout)
-
     columns.keys.iterator
-        .foreach { fieldName =>
-            val value = output.getObject(fieldName.toString)
-            val col: ColumnRequestOutput = columns(fieldName.toString)
-            val schema = col.schema
+        .foreach { field =>
+            val value = output.getObject(field)
+            val col: ColumnRequestOutput = columns(field)
 
-            val family = col match {
-              case qc: QualifiedColumnRequestOutput => qc.family
-              case cf: ColumnFamilyRequestOutput => cf.family
-            }
-
-            // Get qualifier for map-type
             val qualifier = col match {
               case qc: QualifiedColumnRequestOutput => qc.qualifier
-              case cf: ColumnFamilyRequestOutput =>
-                output.getString(cf.qualifierSelector.toString)
+              case cf: ColumnFamilyRequestOutput => output.getString(cf.qualifierSelector.name)
             }
 
-            writer.put(entityId.toJavaEntityId(eidFactory),
-                family,
-                qualifier,
-                timestamp,
-                AvroUtil.encodeToJava(value, schema))
+            writer.put(entityId, col.family, qualifier, timestamp, col.encode(value))
       }
   }
 
@@ -581,13 +569,13 @@ object KijiScheme {
   }
 
   /**
-   * Transforms a list of field names into a collection of fields.
+   * Transforms a list of field names into a Cascading [[cascading.tuple.Fields]].
    *
    * @param fieldNames is a list of field names.
    * @return a collection of fields created from the names.
    */
-  private def getFieldArray(fieldNames: Iterable[String]): Fields = {
-    Fields.join(fieldNames.map { new Fields(_) }.toArray: _*)
+  private def toField(fieldNames: Iterable[Comparable[_]]): Fields = {
+    new Fields(fieldNames.toArray:_*)
   }
 
   /**
@@ -598,7 +586,7 @@ object KijiScheme {
    * @return is a collection of fields created from the names.
    */
   private[express] def buildSourceFields(fieldNames: Iterable[String]): Fields = {
-    getFieldArray(Seq(entityIdField) ++ fieldNames)
+    toField(Seq(entityIdField) ++ fieldNames)
   }
 
   /**
@@ -616,7 +604,7 @@ object KijiScheme {
    */
   private[express] def buildSinkFields(columns: Map[String, ColumnRequestOutput],
       timestampField: Option[Symbol]): Fields = {
-    getFieldArray(Seq(entityIdField)
+    toField(Seq(entityIdField)
         ++ columns.keys
         ++ extractQualifierSelectors(columns)
         ++ timestampField.map { _.name } )
@@ -628,11 +616,9 @@ object KijiScheme {
    * @param columns is the column requests for a Scheme.
    * @return the names of fields that are qualifier selectors.
    */
-  private[express] def extractQualifierSelectors(
-      columns: Map[String, ColumnRequestOutput]): Seq[String] = {
-    // Valid only for map-type requests
+  private[express] def extractQualifierSelectors(columns: Map[String, ColumnRequestOutput]) = {
     columns.valuesIterator.collect {
-      case x: ColumnFamilyRequestOutput => x.qualifierSelector.toString
-    }.toSeq
+      case x: ColumnFamilyRequestOutput => x.qualifierSelector.name
+    }
   }
 }

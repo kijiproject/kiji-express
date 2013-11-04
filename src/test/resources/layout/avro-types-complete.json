@@ -72,9 +72,18 @@
         column_schema: {
           type: "AVRO",
           avro_validation_policy: "STRICT",
-          default_reader: {json: '"long"'},
+          default_reader: {json: '"int"'},
           readers: [{json: '["int", "long"]'}],
           writers: [{json: '"int"'}]
+        }
+      }, {
+        name: "long",
+        column_schema: {
+          type: "AVRO",
+          avro_validation_policy: "STRICT",
+          default_reader: {json: '"long"'},
+          readers: [{json: '"long"'}],
+          writers: [{json: '["int", "long"]'}]
         }
       }, {
         name: "float",
@@ -86,6 +95,15 @@
           writers: [{json: '"float"'}]
         }
       }, {
+        name: "double",
+        column_schema: {
+          type: "AVRO",
+          avro_validation_policy: "STRICT",
+          default_reader: {json: '"double"'},
+          readers: [{json: '"double"'}],
+          writers: [{json: '["float", "double"]'}]
+        }
+        }, {
         name: "bytes",
         column_schema: {
           type: "AVRO",
@@ -99,9 +117,9 @@
         column_schema: {
           type: "AVRO",
           avro_validation_policy: "STRICT",
-          default_reader: {json: '"string"'},
-          readers: [{json: '"string"'}],
-          writers: [{json: '"string"'}]
+          default_reader: {json: '{ "type": "string", "avro.java.string": "String" }'},
+          readers: [{json: '{ "type": "string", "avro.java.string": "String" }'}],
+          writers: [{json: '{ "type": "string" }'}]
         }
       }, {
         name: "specific",
@@ -135,9 +153,9 @@
         column_schema: {
           type: "AVRO",
           avro_validation_policy: "STRICT",
-          default_reader: {json: '{"type": "array", "items": "string"}'},
-          readers: [{json: '{"type": "array", "items": "string"}'}],
-          writers: [{json: '{"type": "array", "items": "string"}'}]
+          default_reader: {json: '{"type": "array", "items": { "type": "string", "avro.java.string": "String" }}'},
+          readers: [{json: '{"type": "array", "items": { "type": "string", "avro.java.string": "String" }}'}],
+          writers: [{json: '{"type": "array", "items": { "type": "string", "avro.java.string": "String" }}'}]
         }
       }, {
         name: "map",
@@ -153,8 +171,8 @@
         column_schema: {
           type: "AVRO",
           avro_validation_policy: "STRICT",
-          default_reader: {json: '["string", "int"]'},
-          readers: [{json: '["string", "int"]'}],
+          default_reader: {json: '[{ "type": "string", "avro.java.string": "String" }, "int"]'},
+          readers: [{json: '[{ "type": "string", "avro.java.string": "String" }, "int"]'}],
           writers: [{json: '["string", "int"]'}]
         }
       }, {
