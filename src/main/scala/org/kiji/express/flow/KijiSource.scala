@@ -332,23 +332,12 @@ object KijiSource {
 
             // Write the timeline to the table.
             cells.map { cell: Cell[Any] =>
-              val readerSchema = layout
-                .getCellSchema(new KijiColumnName(cell.family, cell.qualifier))
-                .getDefaultReader
-              val schema: Option[Schema] =
-                Option(readerSchema) match {
-                  case Some(defaultSchema) =>
-                    Some(KijiScheme.resolveSchemaFromJSONOrUid(defaultSchema, schemaTable))
-                  case None => None
-                }
-
-              val datum = AvroUtil.encodeToJava(cell.datum, schema)
               writer.put(
                 entityId.toJavaEntityId(eidFactory),
                 cell.family,
                 cell.qualifier,
                 cell.version,
-                datum)
+                cell.datum)
             }
           }
         }

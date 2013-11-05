@@ -27,9 +27,6 @@ import com.twitter.scalding._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
-import org.kiji.express.AvroEnum
-import org.kiji.express.AvroRecord
-import org.kiji.express.AvroValue
 import org.kiji.express.Cell
 import org.kiji.express.EntityId
 import org.kiji.express.KijiSlice
@@ -465,171 +462,169 @@ class KijiSourceSuite
       .finish
   }
 
-  test("A job that reads using the generic API is run.") {
-    // Create test Kiji table.
-    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
-      table.getURI().toString()
-    }
+//  test("A job that reads using the generic API is run.") {
+//    // Create test Kiji table.
+//    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
+//      table.getURI().toString()
+//    }
+//
+//    val specificRecord = new HashSpec()
+//    specificRecord.setHashType(HashType.MD5)
+//    specificRecord.setHashSize(13)
+//    specificRecord.setSuppressKeyMaterialization(true)
+//    def genericReadInput(uri: String): List[(EntityId, KijiSlice[HashSpec])] = {
+//      List((EntityId("row01"), slice("family:column3", (10L, specificRecord))))
+//    }
+//
+//    def validateGenericRead(outputBuffer: Buffer[(Int, Int)]): Unit = {
+//      assert (1 === outputBuffer.size)
+//      // There exactly 1 record with hash_size of 13.
+//      assert ((13, 1) === outputBuffer(0))
+//    }
+//
+//    val jobTest = JobTest(new GenericAvroReadJob(_))
+//        .arg("input", uri)
+//        .arg("output", "outputFile")
+//        .source(KijiInput(uri, Map (ColumnRequestInput("family:column3") -> 'records)),
+//            genericReadInput(uri))
+//        .sink(Tsv("outputFile"))(validateGenericRead)
+//
+//    // Run in local mode
+//    jobTest.run.finish
+//
+//    // Run in hadoop mode
+//    jobTest.runHadoop.finish
+//  }
 
-    val specificRecord = new HashSpec()
-    specificRecord.setHashType(HashType.MD5)
-    specificRecord.setHashSize(13)
-    specificRecord.setSuppressKeyMaterialization(true)
-    def genericReadInput(uri: String): List[(EntityId, KijiSlice[HashSpec])] = {
-      List((EntityId("row01"), slice("family:column3", (10L, specificRecord))))
-    }
+//  test("A job that reads using the specific API is run.") {
+//    // Create test Kiji table.
+//    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
+//      table.getURI().toString()
+//    }
+//
+//    val specificRecord = new HashSpec()
+//    specificRecord.setHashType(HashType.MD5)
+//    specificRecord.setHashSize(13)
+//    specificRecord.setSuppressKeyMaterialization(true)
+//    def genericReadInput(uri: String): List[(EntityId, KijiSlice[HashSpec])] = {
+//      List((EntityId("row01"), slice("family:column3", (10L, specificRecord))))
+//    }
+//
+//    def validateSpecificRead(outputBuffer: Buffer[(Int, Int)]): Unit = {
+//      assert (1 === outputBuffer.size)
+//      // There exactly 1 record with hash_size of 13.
+//      assert ((13, 1) === outputBuffer(0))
+//    }
+//
+//    // Defining the KijiSource directly like this is unfortunate, but necessary to make sure that
+//    // the KijiSource referenced here and the one used within SpecificAvroReadJob are identical (the
+//    // KijiSources are used as keys for a map of buffers for test code).
+//    val ksource = new KijiSource(
+//        tableAddress = uri,
+//        timeRange = All,
+//        timestampField = None,
+//        loggingInterval = 1000,
+//        inputColumns = Map('records -> ColumnRequestInput(
+//          "family:column3", schema = Specific(classOf[SpecificRecordTest]))),
+//        outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3"))
+//    )
+//
+//    val jobTest = JobTest(new SpecificAvroReadJob(_))
+//        .arg("input", uri)
+//        .arg("output", "outputFile")
+//        .source(ksource, genericReadInput(uri))
+//        .sink(Tsv("outputFile"))(validateSpecificRead)
+//
+//    // Run in local mode
+//    jobTest.run.finish
+//
+//    // Run in hadoop mode
+//    jobTest.runHadoop.finish
+//  }
 
-    def validateGenericRead(outputBuffer: Buffer[(Int, Int)]): Unit = {
-      assert (1 === outputBuffer.size)
-      // There exactly 1 record with hash_size of 13.
-      assert ((13, 1) === outputBuffer(0))
-    }
+//  test("A job that writes using the generic API is run.") {
+//    // Create test Kiji table.
+//    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
+//      table.getURI().toString()
+//    }
+//
+//    // Input to use with Text source.
+//    val genericWriteInput: List[(String, String)] = List(
+//        ( "0", "one" ),
+//        ( "1", "two" ))
+//
+//    // Validates the output buffer contains the same as the input buffer.
+//    def validateGenericWrite(
+//        outputBuffer: Buffer[(EntityId, KijiSlice[AvroRecord])]
+//    ): Unit = {
+//      val outMap = outputBuffer.toMap
+//
+//      assert("word_one" === outMap(EntityId("one")).getFirstValue()("field1").asString)
+//      assert("word_two" === outMap(EntityId("two")).getFirstValue()("field1").asString)
+//
+//      assert("one" === outMap(EntityId("one")).getFirstValue()("field2").asEnumName)
+//      assert("two" === outMap(EntityId("two")).getFirstValue()("field2").asEnumName)
+//
+//      // scalastyle:off null
+//      assert(null == outMap(EntityId("one")).getFirstValue()("field3"))
+//      // scalastyle:on null
+//
+//      assert(0 === outMap(EntityId("one")).getFirstValue()("field4").asList.size)
+//
+//      assert(0 === outMap(EntityId("one")).getFirstValue()("field5").asMap.size)
+//    }
+//
+//    val jobTest = JobTest(new GenericAvroWriteJob(_))
+//      .arg("input", "inputFile")
+//      .arg("output", uri)
+//      .source(TextLine("inputFile"), genericWriteInput)
+//      .sink(KijiOutput(uri, 'genericRecord -> "family:column4"))(
+//          validateGenericWrite)
+//
+//    // Run in local mode.
+//    jobTest.run.finish
+//
+//    // Run in hadoop mode.
+//    jobTest.runHadoop.finish
+//  }
 
-    val jobTest = JobTest(new GenericAvroReadJob(_))
-        .arg("input", uri)
-        .arg("output", "outputFile")
-        .source(KijiInput(uri, Map (ColumnRequestInput("family:column3") -> 'records)),
-            genericReadInput(uri))
-        .sink(Tsv("outputFile"))(validateGenericRead)
-
-    // Run in local mode
-    jobTest.run.finish
-
-    // Run in hadoop mode
-    jobTest.runHadoop.finish
-  }
-
-  test("A job that reads using the specific API is run.") {
-    // Create test Kiji table.
-    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
-      table.getURI().toString()
-    }
-
-    val specificRecord = new HashSpec()
-    specificRecord.setHashType(HashType.MD5)
-    specificRecord.setHashSize(13)
-    specificRecord.setSuppressKeyMaterialization(true)
-    def genericReadInput(uri: String): List[(EntityId, KijiSlice[HashSpec])] = {
-      List((EntityId("row01"), slice("family:column3", (10L, specificRecord))))
-    }
-
-    def validateSpecificRead(outputBuffer: Buffer[(Int, Int)]): Unit = {
-      assert (1 === outputBuffer.size)
-      // There exactly 1 record with hash_size of 13.
-      assert ((13, 1) === outputBuffer(0))
-    }
-
-    // Defining the KijiSource directly like this is unfortunate, but necessary to make sure that
-    // the KijiSource referenced here and the one used within SpecificAvroReadJob are identical (the
-    // KijiSources are used as keys for a map of buffers for test code).
-    val ksource = new KijiSource(
-        tableAddress = uri,
-        timeRange = All,
-        timestampField = None,
-        loggingInterval = 1000,
-        inputColumns = Map('records -> ColumnRequestInput(
-          "family:column3", schema = Specific(classOf[SpecificRecordTest]))),
-        outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3"))
-    )
-
-    val jobTest = JobTest(new SpecificAvroReadJob(_))
-        .arg("input", uri)
-        .arg("output", "outputFile")
-        .source(ksource, genericReadInput(uri))
-        .sink(Tsv("outputFile"))(validateSpecificRead)
-
-    // Run in local mode
-    jobTest.run.finish
-
-    // Run in hadoop mode
-    jobTest.runHadoop.finish
-  }
-
-  test("A job that writes using the generic API is run.") {
-    // Create test Kiji table.
-    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
-      table.getURI().toString()
-    }
-
-    // Input to use with Text source.
-    val genericWriteInput: List[(String, String)] = List(
-        ( "0", "one" ),
-        ( "1", "two" ))
-
-    // Validates the output buffer contains the same as the input buffer.
-    def validateGenericWrite(
-        outputBuffer: Buffer[(EntityId, KijiSlice[AvroRecord])]
-    ): Unit = {
-      val outMap = outputBuffer.toMap
-
-      assert(
-          "word_one" === outMap(EntityId("one")).getFirstValue()("field1").asString)
-      assert(
-          "word_two" === outMap(EntityId("two")).getFirstValue()("field1").asString)
-
-      assert("one" === outMap(EntityId("one")).getFirstValue()("field2").asEnumName)
-      assert("two" === outMap(EntityId("two")).getFirstValue()("field2").asEnumName)
-
-      // scalastyle:off null
-      assert(null == outMap(EntityId("one")).getFirstValue()("field3"))
-      // scalastyle:on null
-
-      assert(0 === outMap(EntityId("one")).getFirstValue()("field4").asList.size)
-
-      assert(0 === outMap(EntityId("one")).getFirstValue()("field5").asMap.size)
-    }
-
-    val jobTest = JobTest(new GenericAvroWriteJob(_))
-      .arg("input", "inputFile")
-      .arg("output", uri)
-      .source(TextLine("inputFile"), genericWriteInput)
-      .sink(KijiOutput(uri, 'genericRecord -> "family:column4"))(
-          validateGenericWrite)
-
-    // Run in local mode.
-    jobTest.run.finish
-
-    // Run in hadoop mode.
-    jobTest.runHadoop.finish
-  }
-
-  test ("A job that writes to map-type column families is run.") {
-    // URI of the Kiji table to use.
-    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
-      table.getURI().toString()
-    }
-
-    // Input text.
-    val mapTypeInput: List[(String, String)] = List(
-        ("0", "dogs 4"),
-        ("1", "cats 5"),
-        ("2", "fish 3"))
-
-    // Validate output.
-    def validateMapWrite(
-        outputBuffer: Buffer[(EntityId, KijiSlice[AvroRecord])]
-    ): Unit = {
-      assert (1 === outputBuffer.size)
-      val outputSlice = outputBuffer(0)._2
-      val outputSliceMap = outputSlice.groupByQualifier
-      assert (4 === outputSliceMap("dogs").getFirstValue)
-      assert (5 === outputSliceMap("cats").getFirstValue)
-      assert (3 === outputSliceMap("fish").getFirstValue)
-    }
-
-    // Create the JobTest for this test.
-    val jobTest = JobTest(new MapWriteJob(_))
-        .arg("input", "inputFile")
-        .arg("table", uri)
-        .source(TextLine("inputFile"), mapTypeInput)
-        .sink(KijiOutput(uri, Map('resultCount ->
-            new ColumnFamilyRequestOutput("searches", 'terms))))(validateMapWrite)
-
-    // Run the test.
-    jobTest.run.finish
-    // Run the test in hadoop mode.
-    jobTest.runHadoop.finish
-  }
+//  test ("A job that writes to map-type column families is run.") {
+//    // URI of the Kiji table to use.
+//    val uri: String = doAndRelease(makeTestKijiTable(avroLayout)) { table: KijiTable =>
+//      table.getURI().toString()
+//    }
+//
+//    // Input text.
+//    val mapTypeInput: List[(String, String)] = List(
+//        ("0", "dogs 4"),
+//        ("1", "cats 5"),
+//        ("2", "fish 3"))
+//
+//    // Validate output.
+//    def validateMapWrite(
+//        outputBuffer: Buffer[(EntityId, KijiSlice[AvroRecord])]
+//    ): Unit = {
+//      assert (1 === outputBuffer.size)
+//      val outputSlice = outputBuffer(0)._2
+//      val outputSliceMap = outputSlice.groupByQualifier
+//      assert (4 === outputSliceMap("dogs").getFirstValue)
+//      assert (5 === outputSliceMap("cats").getFirstValue)
+//      assert (3 === outputSliceMap("fish").getFirstValue)
+//    }
+//
+//    // Create the JobTest for this test.
+//    val jobTest = JobTest(new MapWriteJob(_))
+//        .arg("input", "inputFile")
+//        .arg("table", uri)
+//        .source(TextLine("inputFile"), mapTypeInput)
+//        .sink(KijiOutput(uri, Map('resultCount ->
+//            new ColumnFamilyRequestOutput("searches", 'terms))))(validateMapWrite)
+//
+//    // Run the test.
+//    jobTest.run.finish
+//    // Run the test in hadoop mode.
+//    jobTest.runHadoop.finish
+//  }
 
   test ("A job that writes to map-type column families with numeric column qualifiers is run.") {
     // URI of the Kiji table to use.
@@ -873,37 +868,24 @@ object KijiSourceSuite {
    *     to the Kiji table the job should be run on, and "output", which specifies the output
    *     Tsv file.
    */
-  class GenericAvroReadJob(args: Args) extends KijiJob(args) {
-    KijiInput(args("input"), "family:column3" -> 'records)
-    .map('records -> 'hashSizeField) { slice: KijiSlice[AvroValue] =>
-        slice.getFirst match {
-          case Cell(_, _, _, record: AvroRecord) => {
-            record("hash_size").asInt
-          }
-        }
-    }
-    .groupBy('hashSizeField)(_.size)
-    .write(Tsv(args("output")))
-  }
-
-  class SpecificAvroReadJob(args: Args) extends KijiJob(args) {
-    // Want to read some data out to 'records and then write it back to a Tsv
-    val ksource = new KijiSource(
-        tableAddress = args("input"),
-        timeRange = All,
-        timestampField = None,
-        loggingInterval = 1000,
-        inputColumns = Map('records -> ColumnRequestInput(
-          "family:column3", schema = Specific(classOf[SpecificRecordTest]))),
-        outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3")))
-    ksource
-        .map('records -> 'hashSizeField) { slice: KijiSlice[AvroValue] =>
-          val Cell(_, _, _, record) = slice.getFirst()
-          record.asSpecificRecord[SpecificRecordTest]().getHashSize
-        }
-        .groupBy('hashSizeField)(_.size)
-        .write(Tsv(args("output")))
-  }
+//  class SpecificAvroReadJob(args: Args) extends KijiJob(args) {
+//    // Want to read some data out to 'records and then write it back to a Tsv
+//    val ksource = new KijiSource(
+//        tableAddress = args("input"),
+//        timeRange = All,
+//        timestampField = None,
+//        loggingInterval = 1000,
+//        inputColumns = Map('records -> ColumnRequestInput(
+//          "family:column3", schema = Specific(classOf[SpecificRecordTest]))),
+//        outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3")))
+//    ksource
+//        .map('records -> 'hashSizeField) { slice: KijiSlice[AvroValue] =>
+//          val Cell(_, _, _, record) = slice.getFirst()
+//          record.asSpecificRecord[SpecificRecordTest]().getHashSize
+//        }
+//        .groupBy('hashSizeField)(_.size)
+//        .write(Tsv(args("output")))
+//  }
 
   /**
    * A job that uses the generic API, creating a record containing the text from the input,
@@ -912,26 +894,26 @@ object KijiSourceSuite {
    * @param args to the job. Two arguments are expected: "input", which specifies the path to a
    *     text file, and "output", which specifies the URI to a Kiji table.
    */
-  class GenericAvroWriteJob(args: Args) extends KijiJob(args) {
-    val tableUri: String = args("output")
-    // scalastyle:off null
-    TextLine(args("input"))
-        .read
-        .map('offset -> 'timestamp) { offset: String => offset.toLong }
-        // Generate an entityId for each line.
-        .map('line -> 'entityId) { EntityId(_: String) }
-        .map('line -> 'genericRecord) { text: String =>
-          AvroRecord(
-              "field1" -> "word_%s".format(text),
-              "field2" -> AvroEnum(text),
-              "field3" -> null,
-              "field4" -> List[Int](),
-              "field5" -> Map[String, Int]())
-        }
-        // Write the results to the "family:column4" column of a Kiji table.
-        .write(KijiOutput(tableUri, 'genericRecord -> "family:column4"))
-    // scalastyle:on null
-  }
+//  class GenericAvroWriteJob(args: Args) extends KijiJob(args) {
+//    val tableUri: String = args("output")
+//    // scalastyle:off null
+//    TextLine(args("input"))
+//        .read
+//        .map('offset -> 'timestamp) { offset: String => offset.toLong }
+//        // Generate an entityId for each line.
+//        .map('line -> 'entityId) { EntityId(_: String) }
+//        .map('line -> 'genericRecord) { text: String =>
+//          AvroRecord(
+//              "field1" -> "word_%s".format(text),
+//              "field2" -> AvroEnum(text),
+//              "field3" -> null,
+//              "field4" -> List[Int](),
+//              "field5" -> Map[String, Int]())
+//        }
+//        // Write the results to the "family:column4" column of a Kiji table.
+//        .write(KijiOutput(tableUri, 'genericRecord -> "family:column4"))
+//    // scalastyle:on null
+//  }
 
   /**
    * A job that writes to a map-type column family.  It takes text from the input and uses it as

@@ -36,8 +36,6 @@ import com.twitter.scalding.TupleSetter
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.Schema
 
-import org.kiji.express.AvroRecord
-import org.kiji.express.AvroValue
 import org.kiji.express.repl.ExpressShell
 import org.kiji.express.repl.Implicits
 import org.kiji.express.repl.Implicits.pipeToRichPipe
@@ -177,76 +175,5 @@ class KijiPipe(private[express] val pipe: Pipe) extends TupleConversions {
     require(schema.getType == Schema.Type.RECORD, "Cannot pack to non-record Avro type.")
     pipe.mapTo(fields) { input: GenericRecord => input } (
       new AvroGenericTupleConverter(new MeatLocker(schema)), implicitly[TupleSetter[GenericRecord]])
-  }
-
-  /**
-   * TODO: remove
-   */
-  private[express] object AvroRecordTupleConverter extends TupleConverter[AvroRecord] {
-    /**
-     * Converts a TupleEntry into an AvroRecord.
-     *
-     * @param entry to pack.
-     * @return an AvroRecord with field names and values corresponding to those in `entry`.
-     */
-    override def apply(entry: TupleEntry): AvroRecord = {
-      val fieldMap: Map[String, AvroValue] =
-          entry.getFields.asScala.toBuffer.map { field: Comparable[_] =>
-            (field.toString, AvroUtil.scalaToGenericAvro(entry.getObject(field)))
-          }.toMap
-      AvroRecord(fieldMap)
-    }
-
-    // Arity is unknown.
-    override def arity(): Int = -1
-  }
-
-  /**
-   * TODO: remove
-   */
-  private[express] object UnpackTupleSetter extends TupleSetter[Any] {
-    /**
-     * Unpacks an AvroRecord into tuple fields.
-     *
-     * @param arg to unpack.
-     * @return a tuple containing a shallowly-unpacked AvroRecord.
-     * @throws IllegalArgumentException if the entry is not an AvroRecord.
-     */
-    override def apply(arg: Any): Tuple = {
-      arg match {
-        case AvroRecord(underlyingMap) => {
-          val result = new Tuple()
-          underlyingMap.values.foreach { value => result.add(value) }
-          result
-        }
-        case _ => {
-          throw new IllegalArgumentException(
-              "KijiPipe cannot unpack unless the field is an AvroRecord.")
-        }
-      }
-    }
-
-    // Arity is unknown.
-    override def arity(): Int = -1
-  }
-
-  /**
-   * TODO: remove
-   */
-  def packAvro(fieldSpec: (Fields, Fields)): Pipe = {
-    val (fromFields, toFields) = fieldSpec
-    require(toFields.size == 1, "Cannot pack to more than one field.")
-    pipe.map(fieldSpec) { input: AvroRecord => input } (AvroRecordTupleConverter,
-      implicitly[TupleSetter[AvroRecord]])
-  }
-
-  /**
-   * TODO: remove
-   */
-  def unpackAvro(fieldSpec: (Fields, Fields)): Pipe = {
-    val (fromFields, toFields) = fieldSpec
-    require(fromFields.size == 1, "Cannot unpack from more than one field.")
-    pipe.map(fieldSpec) { input: Any => input } (implicitly[TupleConverter[Any]],
-      UnpackTupleSetter)
   }
 }

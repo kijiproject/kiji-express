@@ -63,7 +63,7 @@ object Cell {
         cell.getFamily,
         cell.getQualifier,
         cell.getTimestamp.longValue,
-        AvroUtil.decodeGenericFromJava(cell.getData).asInstanceOf[T])
+        AvroUtil.avroToScala(cell.getData).asInstanceOf[T])
   }
 
   /**

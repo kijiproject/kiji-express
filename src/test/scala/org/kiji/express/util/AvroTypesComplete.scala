@@ -21,7 +21,7 @@ package org.kiji.express.util
 
 import scala.util.Random
 
-import org.apache.avro.generic.{GenericData, GenericArray, GenericRecordBuilder}
+import org.apache.avro.generic.{GenericEnumSymbol, GenericData, GenericArray, GenericRecordBuilder}
 import org.apache.avro.generic.GenericData.{Fixed, EnumSymbol}
 import org.apache.avro.Schema
 
@@ -111,7 +111,8 @@ object AvroTypesComplete {
   def genericRecords = ints.zip(floats)
       .map { fields => genericBuilder.set("length", fields._1).set("angle", fields._2).build() }
   def enumValues = Vector("NORTH", "EAST", "SOUTH", "WEST")
-  def enums = base.map { _ => genericData.createEnum(enumValues(rand.nextInt(4)), enumSchema)}
+  def enums = base.map { _ =>
+    genericData.createEnum(enumValues(rand.nextInt(4)), enumSchema).asInstanceOf[GenericEnumSymbol]}
   def enumStrings = base.map { _ => enumValues(rand.nextInt(4))}
   def arrays = base.map { _ => strings }
   def avroArrays = arrays.map { strings =>

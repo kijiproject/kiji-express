@@ -388,16 +388,14 @@ object KijiScheme {
     val result: Tuple = new Tuple()
 
     // Add the row's EntityId to the tuple.
-    val entityId: EntityId = EntityId.fromJavaEntityId(row.getEntityId())
+    val entityId: EntityId = EntityId.fromJavaEntityId(row.getEntityId)
     result.add(entityId)
 
     def rowHasDataOrDefaultForColumnRequest(col: ColumnRequestInput): Boolean = {
       col match {
-        case cf: ColumnFamilyRequestInput =>
-          row.containsColumn(cf.family) || cf.default.isDefined
+        case cf: ColumnFamilyRequestInput => row.containsColumn(cf.family) || cf.default.isDefined
         case qc: QualifiedColumnRequestInput =>
           row.containsColumn(qc.family, qc.qualifier) || qc.default.isDefined
-        //case _ => true
       }
     }
 

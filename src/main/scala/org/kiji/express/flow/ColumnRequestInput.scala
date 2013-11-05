@@ -279,4 +279,5 @@ object Generic {
   def schema(json: String) = parser.parse(json)
 }
 case class Specific(klass: Class[_ <: SpecificRecord]) extends ReaderSchema
+case object Writer extends ReaderSchema
 case object Default extends ReaderSchema

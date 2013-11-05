@@ -26,8 +26,6 @@ import org.apache.hadoop.hbase.HBaseConfiguration
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
-import org.kiji.express.AvroEnum
-import org.kiji.express.AvroRecord
 import org.kiji.express.EntityId
 import org.kiji.express.KijiSlice
 import org.kiji.express.KijiSuite
@@ -56,10 +54,11 @@ class KijiSchemeSuite extends KijiSuite {
 
     // Create a dummy record with an entity ID to put in the table.
     val dummyEid = EntityId("dummy")
-    val record = AvroRecord(
-        "hash_type" -> new AvroEnum("MD5"),
-        "hash_size" -> 13,
-        "suppress_key_materialization" -> false)
+//    val record = AvroRecord(
+//        "hash_type" -> new AvroEnum("MD5"),
+//        "hash_size" -> 13,
+//        "suppress_key_materialization" -> false)
+    val record: AnyRef = null
     val writeValue = new TupleEntry(sourceFields, new Tuple(dummyEid, record))
 
     val eidFactory = EntityIdFactory.getFactory(tableLayout)
