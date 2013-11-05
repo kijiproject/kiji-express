@@ -227,12 +227,12 @@ class WriterSchemaSuite extends KijiClientTest with KijiSuite {
   }
 
   /** TODO: fix generic record serialization. */
-  ignore("A KijiJob can write to a generic record column with a specified writer schema.") {
+  test("A KijiJob can write to a generic record column with a specified writer schema.") {
     testWrite(genericRecords, QualifiedColumnRequestOutput(family, genericColumn, genericSchema))
   }
 
   /** TODO: fix generic record serialization. */
-  ignore("A KijiJob can write to a generic record column without a specified writer schema.") {
+  test("A KijiJob can write to a generic record column without a specified writer schema.") {
     testWrite(genericRecords, QualifiedColumnRequestOutput(family, genericColumn))
   }
 
@@ -250,12 +250,12 @@ class WriterSchemaSuite extends KijiClientTest with KijiSuite {
   }
 
   /** TODO: fix GenericArray serialization. */
-  ignore("A KijiJob can write an avro array to an array column with a specified writer schema.") {
+  test("A KijiJob can write an avro array to an array column with a specified writer schema.") {
     testWrite(avroArrays, QualifiedColumnRequestOutput(family, arrayColumn, arraySchema))
   }
 
   /** TODO: fix GenericArray serialization. */
-  ignore("A KijiJob can write an avro array to an array column without a specified writer schema."){
+  test("A KijiJob can write an avro array to an array column without a specified writer schema."){
     testWrite(avroArrays, QualifiedColumnRequestOutput(family, arrayColumn))
   }
 
@@ -298,7 +298,7 @@ object WriterSchemaSuite {
                       fs: Fields,
                       inputs: Iterable[A],
                       outputSource: KijiSource)
-                     (implicit setter: TupleSetter[A]) = {
+                     (implicit setter: TupleSetter[A]): Boolean = {
     val args = Args("--hdfs")
     Mode.mode = Mode(args, conf) // HDFS mode
     new IdentityJob(fs, inputs, outputSource, args).run

@@ -99,7 +99,7 @@ class ReturnTypeCheckerSuite extends FunSuite {
     assert(resJava === double)
   }
 
-  val bytes: java.nio.ByteBuffer =  java.nio.ByteBuffer.wrap(Array(0x11, 0x12))
+  val bytes: java.nio.ByteBuffer = java.nio.ByteBuffer.wrap(Array[Byte](0x11, 0x12))
   test("Test conversion of Avro bytes from Java, to Scala, and back again.") {
     // Java => Scala
     val res = AvroUtil.decodeGenericFromJava(bytes)
