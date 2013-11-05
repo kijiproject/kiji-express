@@ -173,8 +173,8 @@ class FlowModuleSuite extends FunSuite {
   }
 
   test("A ColumnFamily can specify a replacement that is a single value.") {
-    val col = new ColumnFamilyRequestInput("family")
-    .replaceMissingWith("qualifier", "replacement")
+    val slice = new KijiSlice(List(Cell("family", "qualifier", "replacement")))
+    val col = new ColumnFamilyRequestInput("family", default = Some(slice))
     assert(col.isInstanceOf[ColumnFamilyRequestInput])
 
     val columnFamily = col.asInstanceOf[ColumnFamilyRequestInput]
@@ -260,11 +260,11 @@ class FlowModuleSuite extends FunSuite {
 
   test("A QualifiedColumnRequestInput can specify a replacement that is multiple values with "
       + "timestamps.") {
-    val col = QualifiedColumnRequestInput("family", "qualifier")
+    val slice = new KijiSlice(List(Cell("family", "qualifier", "replacement")))
+    val col = ColumnRequestInput("family:qualifier", default = Some(slice))
     assert(col.isInstanceOf[QualifiedColumnRequestInput])
 
     val qualifiedColumn = col.asInstanceOf[QualifiedColumnRequestInput]
-        .replaceMissingWithVersioned(List((10L, "replacement1"), (20L, "replacement2")))
     val replacementOption: Option[KijiSlice[_]] = qualifiedColumn.default
     assert(replacementOption.isDefined)
 
@@ -277,10 +277,9 @@ class FlowModuleSuite extends FunSuite {
 
   test("A ColumnFamilyRequestInput can specify a replacement that is multiple values with "
       + "timestamps.") {
-    val columnFamily = new ColumnFamilyRequestInput("family")
-        .replaceMissingWithVersioned(List(
-            ("qualifier1", 10L, "replacement1"),
-            ("qualifier2", 20L, "replacement2")))
+    val slice = new KijiSlice(List(Cell("family", "qualifier", 10L, "replacement1"),
+                                   Cell("family", "qualifier", 20L, "replacement2")))
+    val columnFamily = ColumnRequestInput("family", default = Some(slice))
 
     val replacementOption: Option[KijiSlice[_]] = columnFamily.default
     assert(replacementOption.isDefined)

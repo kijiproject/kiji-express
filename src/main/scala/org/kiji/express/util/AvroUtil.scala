@@ -552,7 +552,7 @@ object AvroUtil {
         // Perhaps useful for the case where a user defines their own enum with the same members
         // as defined in the schema.
         genericData.createEnum(e.name, schema)
-      case obj: AnyRef => genericData.createEnum(obj.toString, schema)
+      case s: String => genericData.createEnum(s, schema)
       case other => other
     }
   }

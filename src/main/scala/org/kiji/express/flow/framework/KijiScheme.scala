@@ -553,7 +553,7 @@ object KijiScheme {
           .withMaxVersions(column.maxVersions)
           .withFilter(column.filter.getOrElse(null))
           .withPageSize(column.pageSize.getOrElse(0))
-          .add(column.getColumnName)
+          .add(column.columnName)
         //case _ => builder.newColumnsDef().add(column.getColumnName())
       }
 

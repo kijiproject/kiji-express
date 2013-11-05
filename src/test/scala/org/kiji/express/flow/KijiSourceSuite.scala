@@ -165,7 +165,7 @@ class KijiSourceSuite
         .source(TextLine("inputFile"), importMultipleTimestamps)
         .sink(KijiOutput(uri, 'timestamp, 'word -> "family:column1"))(validateMultipleTimestamps)
         // Run the test job.
-        .runHadoop
+        .run
         .finish
   }
 
@@ -406,15 +406,16 @@ class KijiSourceSuite
       assert(outValues.contains("missings"))
     }
 
+    val slice = new KijiSlice(List(Cell("family", "qualifier", "missing")))
+    val col = new QualifiedColumnRequestInput("family", "column2", default = Some(slice))
+
     // Build test job.
     val jobTest = JobTest(new PluralizeReplaceJob(_))
       .arg("input", uri)
       .arg("output", "outputFile")
-      .source(KijiInput(uri,
-        Map(
-          ColumnRequestInput("family:column1") -> 'word1,
-          new QualifiedColumnRequestInput("family", "column2")
-      .replaceMissingWith("missing") -> 'word2)), missingValuesInput(uri))
+      .source(
+          KijiInput(uri, Map(ColumnRequestInput("family:column1") -> 'word1, col -> 'word2)),
+          missingValuesInput(uri))
       .sink(Tsv("outputFile"))(validateMissingValuesReplaced)
 
     jobTest.run.finish
@@ -527,7 +528,7 @@ class KijiSourceSuite
         timestampField = None,
         loggingInterval = 1000,
         inputColumns = Map('records -> ColumnRequestInput(
-          "family:column3", avroClass=Some(classOf[SpecificRecordTest]))),
+          "family:column3", schema = Specific(classOf[SpecificRecordTest]))),
         outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3"))
     )
 
@@ -757,11 +758,12 @@ object KijiSourceSuite {
   *     Tsv file.
   */
   class PluralizeReplaceJob(args: Args) extends KijiJob(args) {
+
+    val slice = new KijiSlice(List(Cell("family", "column2", "missing")))
     KijiInput(args("input"),
         Map(
             ColumnRequestInput("family:column1") -> 'word1,
-            new QualifiedColumnRequestInput("family", "column2")
-                .replaceMissingWith("missing") -> 'word2))
+            new QualifiedColumnRequestInput("family", "column2", default = Some(slice)) -> 'word2))
     .map('word2 -> 'pluralword) { words: KijiSlice[String] =>
       words.getFirst().datum + "s"
     }
@@ -892,7 +894,7 @@ object KijiSourceSuite {
         timestampField = None,
         loggingInterval = 1000,
         inputColumns = Map('records -> ColumnRequestInput(
-          "family:column3", avroClass=Some(classOf[SpecificRecordTest]))),
+          "family:column3", schema = Specific(classOf[SpecificRecordTest]))),
         outputColumns = Map('records -> QualifiedColumnRequestOutput("family:column3")))
     ksource
         .map('records -> 'hashSizeField) { slice: KijiSlice[AvroValue] =>

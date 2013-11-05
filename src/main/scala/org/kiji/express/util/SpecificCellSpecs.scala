@@ -131,8 +131,8 @@ object SpecificCellSpecs {
   ): Map[KijiColumnName, Class[_ <: SpecificRecord]] = {
     columns.values
         // Need only those columns that have specific Avro classes defined
-        .filter { _.avroClass.isDefined }
-        .map { col => (col.getColumnName, col.avroClass.get) }
+        .map { col => (col.columnName, col.schema) }
+        .collect { case (name, Specific(klass)) => (name, klass) }
         .toMap
   }
 

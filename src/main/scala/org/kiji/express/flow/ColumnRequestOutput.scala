@@ -39,7 +39,11 @@ import org.kiji.express.util.AvroUtil
 @Inheritance.Sealed
 trait ColumnRequestOutput {
 
-  /** Family which this [[org.kiji.express.flow.ColumnRequestOutput]] belongs to. */
+  /**
+   * Family which this [[org.kiji.express.flow.ColumnRequestOutput]] belongs to.
+   *
+   * @return family name of column
+   */
   def family: String
 
   /**

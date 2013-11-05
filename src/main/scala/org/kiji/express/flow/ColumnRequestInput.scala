@@ -20,85 +20,134 @@
 package org.kiji.express.flow
 
 import org.apache.avro.specific.SpecificRecord
-import org.apache.hadoop.hbase.HConstants
 
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.annotations.Inheritance
-import org.kiji.express.Cell
 import org.kiji.express.KijiSlice
 import org.kiji.schema.KijiColumnName
-import org.kiji.schema.KijiInvalidNameException
 import org.kiji.schema.filter.KijiColumnFilter
+import org.apache.avro.Schema
 
-/**
- * Shared interface for all (group- and map-type) ColumnRequestInput objects.  Useful for any code
- * that performs operations on collections for [[org.kiji.express.flow.QualifiedColumnRequestInput]]
- * and [[org.kiji.express.flow.ColumnFamilyRequestInput]] objects.
- *
- * The entire API is read-only (outside of [[org.kiji.express]]).  We assume that users will specify
- * output requests using the factory methods `object ColumnRequestInput.`
- *
- */
 @ApiAudience.Framework
 @ApiStability.Experimental
 @Inheritance.Sealed
+/**
+ * Interface for all column input request specification objects.
+ *
+ * Note that the subclasses of ColumnRequestInput are case classes, and so they override
+ * ColumnRequestInput's abstract methods (e.g., schema) with vals.
+ */
 trait ColumnRequestInput {
 
-  // Note that the subclasses of ColumnRequestInput are case classes, and so they override
-  // ColumnRequestInput's abstract methods (e.g., `maxVersions`) with vals.
+  /**
+   * Family which this [[org.kiji.express.flow.ColumnRequestInput]] belongs to.
+   *
+   * @return family name of column
+   */
+  def family: String
+
+  /**
+   * The [[org.kiji.schema.KijiColumnName]] of the column.
+   */
+  def columnName: KijiColumnName
 
   /**
    * Specifies the maximum number of cells (from the most recent) to retrieve from a column.
    *
    * By default, only the most recent cell is retrieved.
    */
-  private[express] def maxVersions: Int
+  def maxVersions: Int
 
   /**
    * Specifies a filter that a cell must pass for this request to retrieve it.
    *
-   * By default, there is no filter.
+   * If None, no filter is used.
    */
-  private[express] def filter: Option[KijiColumnFilter]
+  def filter: Option[KijiColumnFilter]
 
   /**
    * Specifies a default value to use for missing cells during a read.
    *
-   * By default (or if this field is set to `None`), rows with missing values are ignored.
+   * If None, rows with missing values are ignored.
    */
-  private[express] def default: Option[KijiSlice[_]]
+  def default: Option[KijiSlice[_]]
 
   /**
    * Specifies the maximum number of cells to maintain in memory when paging through a column.
    *
-   * By default (or if this field is set to
-   * [[org.kiji.express.flow.ColumnRequestInput.PageSizePagingOff]]), paging is disabled.
+   * If None, paging is disabled.
    */
-  private[express] def pageSize: Option[Int]
+  def pageSize: Option[Int]
 
   /**
-   * Specifies the class of data returned by a read, if forcing the results to be a SpecificRecord.
-   *
-   * By default (or if this field is set to None), results are not forced to be a SpecificRecord.
+   * Specifies the schema type of data to be read from the column.
    */
-  private[express] def avroClass: Option[Class[_ <: SpecificRecord]]
+  def schema: ReaderSchema
+}
+
+object ColumnRequestInput {
 
   /**
-   * Creates a copy of this column request with `maxVersions` set appropriately for testing.
+   * Convenience function for creating a [[org.kiji.express.flow.ColumnRequestInput]].  The input
+   * spec will be for a qualified column if the column parameter contains a ':',
+   * otherwise the input will assumed to be for a column family.
    *
-   * Used within Express for testing infrastructure.
+   * @param column The requested column name.
+   * @param schema of data to read from column.  Defaults to default reader schema.
+   * @return ColumnRequestInput with supplied options.
    */
-  private[express] def newGetAllData: ColumnRequestInput
+  def apply(
+    column: String,
+    maxVersions: Int = latest,
+    filter: Option[KijiColumnFilter] = None,
+    default: Option[KijiSlice[_]] = None,
+    pageSize: Option[Int] = None,
+    schema: ReaderSchema = Default
+  ): ColumnRequestInput = {
+    column.split(':').toList match {
+      case family :: qualifier :: Nil =>
+        QualifiedColumnRequestInput(family, qualifier, schema = schema)
+      case family :: Nil =>
+        ColumnFamilyRequestInput(family, schema = schema)
+      case _ => throw new IllegalArgumentException("column name must contain 'family:qualifier'" +
+          " for a group-type, or 'family' for a map-type column.")
+    }
+  }
 
   /**
-   * Returns the standard KijiColumnName representation of the name of the column this
-   * ColumnRequests is for.
+   * Convenience function for creating a [[org.kiji.express.flow.ColumnRequestInput]].  The input
+   * spec will be for a qualified column if the column parameter contains a ':',
+   * otherwise the input will assumed to be for a column family. The column will be read with the
+   * schema of the provided specific Avro record.
    *
-   * @return the name of the column this ColumnRequestInput specifies.
+   * @param column The requested column name.
+   * @param avroClass of specific record to read from the column.
+   * @return ColumnRequestInput with supplied options.
    */
-  private[express] def getColumnName: KijiColumnName
+  def apply(
+      column: String,
+      avroClass: Class[_ <: SpecificRecord]
+  ): ColumnRequestInput = {
+    ColumnRequestInput(column, schema = Specific(avroClass))
+  }
 
+  /**
+   * Convenience function for creating a [[org.kiji.express.flow.ColumnRequestInput]].  The input
+   * spec will be for a qualified column if the column parameter contains a ':',
+   * otherwise the input will assumed to be for a column family.  The column will be read with the
+   * provided generic Avro schema.
+   *
+   * @param column The requested column name.
+   * @param schema of generic Avro type to read from the column.
+   * @return ColumnRequestInput with supplied options.
+   */
+  def apply(
+    column: String,
+    schema: Schema
+  ): ColumnRequestInput = {
+    ColumnRequestInput(column, schema = Generic(schema))
+  }
 }
 
 /**
@@ -107,190 +156,127 @@ trait ColumnRequestInput {
  * @param family The requested column family name.
  * @param qualifier The requested column qualifier name.
  * @param maxVersions The maximum number of versions to read back (default is only most recent).
- * @param filter Filter to use when reading back cells (default is `None`)
- * @param pageSize The maximum number of cells to keep in memory when paging (default is `None`,
- *     paging disabled)
- * @param avroClass Avro class to use for data being read (default is `None`).
+ * @param filter Filter to use when reading back cells (default is None).
+ * @param default Default KijiSlice to return in case column is empty in row.
+ * @param pageSize Maximum number of cells to request from HBase per RPC.
+ * @param schema Reader schema specification.  Defaults to the default reader schema.
  */
 final case class QualifiedColumnRequestInput (
-    val family: String,
-    val qualifier: String,
-    val maxVersions: Int = latest,
-    val filter: Option[KijiColumnFilter] = None,
-    val default: Option[KijiSlice[_]] = None,
-    val pageSize: Option[Int] = None,
-    val avroClass: Option[Class[_ <: SpecificRecord]] = None
-) extends ColumnRequestInput {
-
-  /** Returns name (`family:qualifier`) for requested column as KijiColumnName. */
-  override def getColumnName: KijiColumnName = new KijiColumnName(family, qualifier)
-
-  /**
-   * Legacy methods for easily specifying a default value for missing data.
-   *
-   * We shall remove these methods and replace their functionality with better factory methods for
-   *     `KijiSlice.`
-   */
-  private[express] def replaceMissingWith[T](datum: T): QualifiedColumnRequestInput = {
-    val default = new KijiSlice(List(Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum)))
-    copy(default=Some(default))
-  }
-
-  /** See previous comment. */
-  private[express] def replaceMissingWithVersioned[T](
-      version: Long, datum: T): QualifiedColumnRequestInput = {
-    val default = new KijiSlice(List(Cell( family, qualifier, version, datum)))
-    copy(default=Some(default))
-  }
-
-  /** See previous comment. */
-  private[express] def replaceMissingWith[T](data: Seq[T]): QualifiedColumnRequestInput = {
-    val default = new KijiSlice(data.map { datum: T =>
-        Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum) })
-    copy(default=Some(default))
-  }
-
-  /** See previous comment. */
-  private[express] def replaceMissingWithVersioned[T](
-      versionedData: Seq[(Long, T)]): QualifiedColumnRequestInput = {
-    val default = new KijiSlice(versionedData.map { case (version: Long, datum: Any) =>
-        Cell(family, qualifier, version, datum) })
-    copy(default=Some(default))
-  }
-
-  /**
-   * Creates a copy of this column request with `maxVersions` set appropriately for testing.
-   *
-   * Used within Express for testing infrastructure.
-   */
-  private[express] def newGetAllData: QualifiedColumnRequestInput =
-      copy(maxVersions = Integer.MAX_VALUE)
-}
-
-/**
- * Specification for reading from a map-type column family in a Kiji table.
- *
- * The constructor for this class is private.  Please instantiate objects with the constructor in
- *     `object ColumnRequestInput`
- *
- * @param family The requested column family name.
- * @param maxVersions The maximum number of versions to read back (default is only most recent).
- * @param filter Filter to use when reading back cells (default is `None`)
- * @param pageSize The maximum number of cells to keep in memory when paging (default is `None`,
- *     paging disabled)
- * @param avroClass Avro class to use for data being read (default is `None`).
- */
-final case class ColumnFamilyRequestInput (
-    val family: String,
-    val maxVersions: Int = latest,
-    val filter: Option[KijiColumnFilter] = None,
-    val default: Option[KijiSlice[_]] = None,
-    val pageSize: Option[Int] = None,
-    val avroClass: Option[Class[_ <: SpecificRecord]] = None
-) extends ColumnRequestInput {
-  if (family.contains(':')) {
-    throw new KijiInvalidNameException("Cannot hae a : in family name for map-type request")
-  }
-
-  /** Returns name (`family`) for requested column as KijiColumnName. */
-  override def getColumnName: KijiColumnName = new KijiColumnName(family)
-
-  /**
-   * Legacy methods for easily specifying a default value for missing data.
-   *
-   * We shall remove these methods and replace their functionality with better factory methods for
-   *     `KijiSlice.`
-   */
-  private[express] def replaceMissingWith[T](
-      qualifier: String, datum: T): ColumnFamilyRequestInput = {
-    val default = new KijiSlice(List(Cell( family, qualifier, HConstants.LATEST_TIMESTAMP, datum)))
-    copy(default=Some(default))
-  }
-
-  /** See previous comment. */
-  private[express] def replaceMissingWithVersioned[T](
-      qualifier: String, version: Long, datum: T): ColumnFamilyRequestInput = {
-    val default = new KijiSlice(List(Cell( family, qualifier, version, datum)))
-    copy(default=Some(default))
-  }
-
-  /** See previous comment. */
-  private[express] def replaceMissingWith[T](data: Seq[(String, T)]): ColumnFamilyRequestInput = {
-    val default = new KijiSlice(data.map { case (qualifier: String, datum: Any) =>
-                Cell(family, qualifier, HConstants.LATEST_TIMESTAMP, datum) })
-    copy(default=Some(default))
-  }
-
-  /** See previous comment. */
-  private[express] def replaceMissingWithVersioned[T](
-      versionedData: Seq[(String, Long, T)]): ColumnFamilyRequestInput = {
-    val default = new KijiSlice(versionedData.map {
-      case (qualifier: String, version: Long, datum: Any)
-        => Cell(family, qualifier, version, datum) })
-      copy(default=Some(default))
-  }
-
-  /**
-   * Creates a copy of this column request with `maxVersions` set appropriately for testing.
-   *
-   * Used within Express for testing infrastructure.
-   */
-  private[express] def newGetAllData: ColumnFamilyRequestInput =
-      copy(maxVersions = Integer.MAX_VALUE)
-}
-
-/** Factory object for creating group- and map-type column input requests. */
-@ApiAudience.Public
-@ApiStability.Experimental
-object ColumnRequestInput {
-
-  /**
-   * Factory method for `QualifiedColumnRequestInput` and `ColumnFamilyRequestInput`.
-   *
-   * For internal use only, not part of the public API.
-   *
-   * Will choose to create a group or map-type request appropriately depending on whether the
-   * specified `columnName` contains a `:` or not.
-   *
-   * @param columnName name of the requested column.  Requests for group-type columns should be of
-   *     the form `family:qualifier`.  Requests for map-type columns should be of the form
-   *     `family`.
-   * @param maxVersions The maximum number of versions to read back (default is only most recent).
-   * @param filter Filter to use when reading back cells (default is `None`)
-   * @param pageSize The maximum number of cells to keep in memory when paging (default is `None`,
-   *     paging disabled)
-   * @param avroClass Avro class to use for data being read (default is `None`).
-   * @return A `QualifiedColumnRequestInput` or `ColumnFamilyRequestInput` object (depending
-   *     on the presence of a `:` in `columnName`) with its fields populated per the parameters.
-   */
-  def apply(
-    columnName: String,
+    family: String,
+    qualifier: String,
     maxVersions: Int = latest,
     filter: Option[KijiColumnFilter] = None,
     default: Option[KijiSlice[_]] = None,
     pageSize: Option[Int] = None,
-    avroClass: Option[Class[_ <: SpecificRecord]] = None
-  ): ColumnRequestInput = {
-    val kijiColumn = new KijiColumnName(columnName)
-    if (kijiColumn.isFullyQualified) {
-      new QualifiedColumnRequestInput(
-        family = kijiColumn.getFamily(),
-        qualifier = kijiColumn.getQualifier(),
-        maxVersions = maxVersions,
-        filter = filter,
-        default = default,
-        pageSize = pageSize,
-        avroClass = avroClass
-      )
-    } else {
-      new ColumnFamilyRequestInput(
-        family = kijiColumn.getFamily(),
-        maxVersions = maxVersions,
-        filter = filter,
-        default = default,
-        pageSize = pageSize,
-        avroClass = avroClass
-      )
-    }
+    schema: ReaderSchema = Default
+) extends ColumnRequestInput {
+  @transient override val columnName: KijiColumnName = new KijiColumnName(family, qualifier)
+}
+
+object QualifiedColumnRequestInput {
+  /**
+   * Convenience function for creating a [[org.kiji.express.flow.QualifiedColumnRequestInput]] with
+   * a specific Avro record type.
+   *
+   * @param family The requested column family name.
+   * @param qualifier The requested column qualifier name.
+   * @param avroClass of specific record to read from the column.
+   * @return QualifiedColumnRequestInput with supplied options.
+   */
+  def apply(
+      family: String,
+      qualifier: String,
+      avroClass: Class[_ <: SpecificRecord]
+  ) : QualifiedColumnRequestInput = {
+    QualifiedColumnRequestInput(family, qualifier, schema = Specific(avroClass))
+  }
+
+  /**
+   * Convenience function for creating a [[org.kiji.express.flow.QualifiedColumnRequestInput]] with
+   * a generic Avro type specified by a [[org.apache.avro.Schema]].
+   *
+   * @param family The requested column family name.
+   * @param qualifier The requested column qualifier name.
+   * @param schema of generic Avro type to read from the column.
+   * @return QualifiedColumnRequestInput with supplied options.
+   */
+  def apply(
+      family: String,
+      qualifier: String,
+      schema: Schema
+  ): QualifiedColumnRequestInput = {
+    QualifiedColumnRequestInput(family, qualifier, schema = Generic(schema))
   }
 }
+
+/**
+ * Specification for reading from a column family in a Kiji table.
+ *
+ * @param family The requested column family name.
+ * @param maxVersions The maximum number of versions to read back (default is only most recent).
+ * @param filter Filter to use when reading back cells (default is None).
+ * @param default Default KijiSlice to return in case column is empty in row.
+ * @param pageSize Maximum number of cells to request from HBase per RPC.
+ * @param schema Reader schema specification.  Defaults to the default reader schema.
+ */
+final case class ColumnFamilyRequestInput (
+    family: String,
+    maxVersions: Int = latest,
+    filter: Option[KijiColumnFilter] = None,
+    default: Option[KijiSlice[_]] = None,
+    pageSize: Option[Int] = None,
+    schema: ReaderSchema = Default
+) extends ColumnRequestInput {
+  require(!family.contains(':'), "family name of map-type column may not contain a ':'.")
+
+  @transient override val columnName: KijiColumnName = new KijiColumnName(family)
+}
+
+object ColumnFamilyRequestInput {
+  /**
+   * Convenience function for creating a [[org.kiji.express.flow.ColumnFamilyRequestInput]] with a
+   * specific Avro record type.
+   *
+   * @param family The requested column family name.
+   * @param avroClass of specific record to read from the column.
+   * @return ColumnFamilyRequestInput with supplied options.
+   */
+  def apply(
+      family: String,
+      avroClass: Class[_ <: SpecificRecord]
+  ): ColumnFamilyRequestInput = {
+    ColumnFamilyRequestInput(family, schema = Specific(avroClass))
+  }
+
+  /**
+   * Convenience function for creating a [[org.kiji.express.flow.ColumnFamilyRequestInput]] with a
+   * generic Avro type specified by a [[org.apache.avro.Schema]].
+   *
+   * @param family The requested column family name.
+   * @param schema of generic Avro type to read from the column.
+   * @return ColumnFamilyRequestInput with supplied options.
+   */
+  def apply(
+      family: String,
+      schema: Schema
+  ): ColumnFamilyRequestInput = {
+    ColumnFamilyRequestInput(family, schema = Generic(schema))
+  }
+}
+
+/**
+ * A data type for representing how a cell should be read.  It can be Generic, in which case it
+ * represents a generic Avro type (primitive or complex) of the given schema; or Specific,
+ * in which case it represents a specific compiled Avro record; or Default, which will be resolved
+ * at runtime to the default reader schema.
+ */
+sealed trait ReaderSchema
+case class Generic(schema: String) extends ReaderSchema
+object Generic {
+  val parser = new Schema.Parser()
+  def apply(schema: Schema) = new Generic(schema.toString(false))
+  def schema(g: Generic) = parser.parse(g.schema)
+  def schema(json: String) = parser.parse(json)
+}
+case class Specific(klass: Class[_ <: SpecificRecord]) extends ReaderSchema
+case object Default extends ReaderSchema

@@ -78,6 +78,7 @@ import org.kiji.schema.KijiTable
 import org.kiji.schema.KijiTableReader
 import org.kiji.schema.KijiTableWriter
 import org.kiji.schema.KijiURI
+import org.kiji.schema.filter.KijiColumnFilter
 
 /**
  * A read or write view of a Kiji table.
@@ -355,6 +356,16 @@ object KijiSource {
     }
   }
 
+  private[express] def newGetAllData(col: ColumnRequestInput): ColumnRequestInput = {
+    ColumnRequestInput(
+        col.columnName.toString,
+        Integer.MAX_VALUE,
+        col.filter,
+        col.default,
+        col.pageSize,
+        col.schema)
+  }
+
   /**
    * Returns a map from field name to column request where the column request has been
    * configured as an output column.
@@ -368,7 +379,7 @@ object KijiSource {
    */
   private def inputColumnRequestsAllData(
       columns: Map[String, ColumnRequestInput]): Map[String, ColumnRequestInput] = {
-    columns.mapValues(_.newGetAllData)
+    columns.mapValues(newGetAllData)
         // Need this to make the Map serializable (issue with mapValues)
         .map(identity)
   }

@@ -31,6 +31,9 @@ import org.scalatest.junit.JUnitRunner
 
 import org.kiji.schema.filter.KijiColumnFilter
 import org.kiji.schema.filter.RegexQualifierColumnFilter
+import org.kiji.express.avro.SimpleRecord
+import org.kiji.express.KijiSlice
+import org.kiji.express.Cell
 
 @RunWith(classOf[JUnitRunner])
 class ColumnRequestSuite extends FunSuite {
@@ -150,47 +153,90 @@ class ColumnRequestSuite extends FunSuite {
     assert(col2.hashCode() === colWithOptions.hashCode())
   }
 
-
   test("A QualifiedColumnRequestInput must be serializable.") {
-    // Serialize and deserialize using java ObjectInputStream and ObjectOutputStream.
-    val col = new QualifiedColumnRequestInput(colFamily, colQualifier)
-    val copy = copyBySerialization(col)
-    assert(col === copy)
+    val col = QualifiedColumnRequestInput(colFamily, colQualifier)
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A QualifiedColumnRequestInput with a specific class must be serializable.") {
+    val col = QualifiedColumnRequestInput(colFamily, colQualifier,
+        schema = Specific(classOf[SimpleRecord]))
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A QualifiedColumnRequestInput with a generic schema must be serializable.") {
+    val col = QualifiedColumnRequestInput(colFamily, colQualifier,
+        schema = Generic(Schema.create(Schema.Type.STRING)))
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A QualifiedColumnRequestInput with a default slice must be serializer.") {
+    val slice = new KijiSlice(List(Cell("foo", "bar", "baz")))
+    val col = QualifiedColumnRequestInput("foo", "bar", default = Some(slice))
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A ColumnFamilyRequestInput must be serializable.") {
+    val col = ColumnFamilyRequestInput(colFamily)
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A ColumnFamilyRequestInput with a specific class must be serializable.") {
+    val col = ColumnFamilyRequestInput(colFamily,
+      schema = Specific(classOf[SimpleRecord]))
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A ColumnFamilyRequestInput with a generic schema must be serializable.") {
+    val col = ColumnFamilyRequestInput(colFamily,
+        schema = Generic(Schema.create(Schema.Type.STRING)))
+    assertCRIEqual(col, copyBySerialization(col))
+  }
+
+  test("A ColumnFamilyRequestInput with a default slice must be serializer.") {
+    val slice = new KijiSlice(List(Cell("foo", "bar", "baz")))
+    val col = ColumnFamilyRequestInput("foo", default = Some(slice))
+    assertCRIEqual(col, copyBySerialization(col))
   }
 
   test("A QualfifedColumnRequestOutput must be serializable.") {
-    val req = QualifiedColumnRequestOutput("foo", "bar", None)
-    val copy = copyBySerialization(req)
-    assertCROEqual(req, copy)
+    val col = QualifiedColumnRequestOutput("foo", "bar")
+    assertCROEqual(col, copyBySerialization(col))
   }
 
   test("A QualfifedColumnRequestOutput with a schema must be serializable.") {
-    val req = QualifiedColumnRequestOutput("foo", "bar", Some(Schema.create(Schema.Type.FLOAT)))
-    val copy = copyBySerialization(req)
-    assertCROEqual(req, copy)
+    val col = QualifiedColumnRequestOutput("foo", "bar", Some(Schema.create(Schema.Type.FLOAT)))
+    assertCROEqual(col, copyBySerialization(col))
   }
 
   test("A ColumnFamilyRequestOutput must be serializable.") {
-    val req = ColumnFamilyRequestOutput("foo", 'bar, None)
-    val copy = copyBySerialization(req)
-    assertCROEqual(req, copy)
-  }
-  test("A ColumnFamilyRequestOutput with a schema must be serializable.") {
-    val req = ColumnFamilyRequestOutput("foo", 'bar, Some(Schema.create(Schema.Type.FLOAT)))
-    val copy = copyBySerialization(req)
-    assertCROEqual(req, copy)
+    val col = ColumnFamilyRequestOutput("foo", 'bar, None)
+    assertCROEqual(col, copyBySerialization(col))
   }
 
+  test("A ColumnFamilyRequestOutput with a schema must be serializable.") {
+    val col = ColumnFamilyRequestOutput("foo", 'bar, Some(Schema.create(Schema.Type.FLOAT)))
+    assertCROEqual(col, copyBySerialization(col))
+  }
 }
 
 object ColumnRequestSuite {
 
-  def assertCROEqual(a: ColumnRequestOutput, b: ColumnRequestOutput)
-= {
+  def assertCROEqual(a: ColumnRequestOutput, b: ColumnRequestOutput) = {
     assert(a.family == b.family)
     assert(a.columnName == b.columnName)
     assert(a.schema == b.schema)
     assert(b.encode != null) // No way to easily test function equality. Ensure it was deserialized.
+  }
+
+  def assertCRIEqual(a: ColumnRequestInput, b: ColumnRequestInput) = {
+    assert(a.family == b.family)
+    assert(a.columnName == b.columnName)
+    assert(a.maxVersions == b.maxVersions)
+    assert(a.filter == b.filter)
+    assert(a.default == b.default)
+    assert(a.pageSize == b.pageSize)
+    assert(a.schema == b.schema)
   }
 
   def copyBySerialization[T <: Serializable](obj: T): T = {

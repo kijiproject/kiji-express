@@ -287,8 +287,8 @@ object KijiTap {
     val validationEnabled = { layoutVersion.compareTo(Versions.LAYOUT_1_3_0) >= 0 }
 
     // Get a list of columns that don't exist
-    val inputColumnNames: Seq[KijiColumnName] = inputColumns.values.map( _.getColumnName ).toList
-    val outputColumnNames: Seq[KijiColumnName] = outputColumns.values.map( _.columnName ).toList
+    val inputColumnNames: Seq[KijiColumnName] = inputColumns.values.map(_.columnName).toList
+    val outputColumnNames: Seq[KijiColumnName] = outputColumns.values.map(_.columnName).toList
 
     val nonExistentColumnErrors = (inputColumnNames ++ outputColumnNames)
         // Filter for columns that don't exist
