@@ -88,15 +88,26 @@ class KijiJob(args: Args = Args(Nil))
   }
 
   override def config(implicit mode: Mode): Map[AnyRef, AnyRef] = {
-    // We configure as is done in Scalding's Job, but then append to mapred.child.java.opts to
-    // disable schema validation.
     val baseConfig = super.config(mode)
-    val baseJavaOpts = baseConfig.get("mapred.child.java.opts").getOrElse("")
-    val newJavaOpts = (baseJavaOpts
-        + " -Dorg.kiji.schema.impl.AvroCellEncoder.SCHEMA_VALIDATION=DISABLED")
 
-    baseConfig ++ Map("mapred.child.java.opts" -> newJavaOpts)
+    // We configure as is done in Scalding's Job, but then append to mapred.child.java.opts to
+    // disable schema validation. This system property is only useful for KijiSchema v1.1. In newer
+    // versions of KijiSchema, this property has no effect.
+    val disableValidation = " -Dorg.kiji.schema.impl.AvroCellEncoder.SCHEMA_VALIDATION=DISABLED"
+    val oldJavaOptions = baseConfig
+        .get("mapred.child.java.opts")
+        .getOrElse("")
 
-    baseConfig
+    // Add support for our Kryo Avro serializers (see org.kiji.express.flow.framework.KryoKiji).
+    val oldSerializations = baseConfig("io.serializations").toString
+    require(oldSerializations.contains("com.twitter.scalding.serialization.KryoHadoop"))
+    val newSerializations = oldSerializations.replaceFirst(
+        "com.twitter.scalding.serialization.KryoHadoop",
+        "org.kiji.express.flow.framework.KryoKiji")
+
+    // Append all the new keys.
+    baseConfig +
+        ("mapred.child.java.opts" -> (oldJavaOptions + disableValidation)) +
+        ("io.serializations" -> newSerializations)
   }
 }
