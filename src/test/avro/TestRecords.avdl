@@ -17,7 +17,6 @@
  * limitations under the License.
  */
 
-
 /** This protocol defines avro objects used for testing. */
 @namespace("org.kiji.express.avro")
 protocol Testing {
