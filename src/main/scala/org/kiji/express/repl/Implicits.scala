@@ -31,6 +31,7 @@ import com.twitter.scalding.TupleSetter
 
 import org.kiji.express.util.AvroTupleConversions
 import org.kiji.express.util.PipeConversions
+import org.apache.avro.util.Utf8
 
 /**
  * Object containing various implicit conversions required to create Scalding flows in the REPL.

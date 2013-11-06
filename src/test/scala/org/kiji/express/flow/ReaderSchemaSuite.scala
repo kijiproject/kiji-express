@@ -21,7 +21,6 @@ package org.kiji.express.flow
 
 import com.twitter.scalding.Mode
 import com.twitter.scalding.Args
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericFixed
 import org.apache.avro.generic.GenericEnumSymbol
 import org.apache.avro.generic.GenericRecord
@@ -40,6 +39,10 @@ import org.kiji.express.avro.SimpleRecord
 import org.kiji.express.EntityId
 import org.kiji.express.KijiSlice
 import org.kiji.express.KijiSuite
+import org.kiji.express.SchemaSpec
+import org.kiji.express.SchemaSpec.Specific
+import org.kiji.express.SchemaSpec.Generic
+import org.kiji.express.SchemaSpec.Writer
 
 
 @RunWith(classOf[JUnitRunner])
@@ -70,21 +73,17 @@ class ReaderSchemaSuite extends KijiClientTest with KijiSuite {
     get.getMostRecentValue(family, column)
   }
 
-  private def testExpressReadWrite[T](column: String, value: Any, schema: ReaderSchema,
-                                      overrideSchema: Option[Schema] = None) = {
+  private def testExpressReadWrite[T](
+      column: String,
+      value: Any,
+      schema: SchemaSpec,
+      overrideSchema: Option[SchemaSpec] = None
+  ) = {
     val readEid = column + "-in"
     val writeEid = column + "-out"
     writeValue(readEid, column, value)
 
-    val outputSchema = if (overrideSchema.isDefined) {
-      overrideSchema
-    } else {
-      schema match {
-        case Default => None
-        case Specific(klass) => Some(klass.getMethod("getSchema").invoke(klass).asInstanceOf[Schema])
-        case Generic(json) => Some(Generic.schema(json))
-      }
-    }
+    val outputSchema = overrideSchema.getOrElse(schema)
 
     val inputCol = QualifiedColumnRequestInput(family, column, schema = schema)
     val outputCol = QualifiedColumnRequestOutput(family, column, outputSchema)
@@ -95,56 +94,56 @@ class ReaderSchemaSuite extends KijiClientTest with KijiSuite {
     assert(value === getValue[T](writeEid, column))
   }
 
-  test("A KijiJob can read a counter column with the default reader schema.") {
-    testExpressReadWrite[Long](counterColumn, longs.head, Default)
+  test("A KijiJob can read a counter column with the writer schema.") {
+    testExpressReadWrite[Long](counterColumn, longs.head, Writer)
   }
 
-  test("A KijiJob can read a raw bytes column with the default reader schema.") {
-    testExpressReadWrite[Array[Byte]](rawColumn, bytes.head, Default)
+  test("A KijiJob can read a raw bytes column with the writer schema.") {
+    testExpressReadWrite[Array[Byte]](rawColumn, bytes.head, Writer)
   }
 
-  test("A KijiJob can read a null column with the default reader schema.") {
-    testExpressReadWrite[Null](nullColumn, null, Default)
+  test("A KijiJob can read a null column with the writer schema.") {
+    testExpressReadWrite[Null](nullColumn, null, Writer)
   }
 
   test("A KijiJob can read a null column with a generic reader schema.") {
     testExpressReadWrite[Null](nullColumn, null, Generic(nullSchema))
   }
 
-  test("A KijiJob can read a boolean column with the default reader schema.") {
-    testExpressReadWrite[Boolean](booleanColumn, booleans.head, Default)
+  test("A KijiJob can read a boolean column with the writer schema.") {
+    testExpressReadWrite[Boolean](booleanColumn, booleans.head, Writer)
   }
 
   test("A KijiJob can read a boolean column with a generic reader schema.") {
     testExpressReadWrite[Boolean](booleanColumn, booleans.head, Generic(booleanSchema))
   }
 
-  test("A KijiJob can read an int column with the default reader schema.") {
-    testExpressReadWrite[Int](intColumn, ints.head, Default)
+  test("A KijiJob can read an int column with the writer schema.") {
+    testExpressReadWrite[Int](intColumn, ints.head, Writer)
   }
 
   test("A KijiJob can read an int column with a generic reader schema.") {
     testExpressReadWrite[Int](intColumn, ints.head, Generic(intSchema))
   }
 
-  test("A KijiJob can read a long column with the default reader schema.") {
-    testExpressReadWrite[Long](longColumn, longs.head, Default)
+  test("A KijiJob can read a long column with the writer schema.") {
+    testExpressReadWrite[Long](longColumn, longs.head, Writer)
   }
 
   test("A KijiJob can read a long column with a generic reader schema.") {
     testExpressReadWrite[Long](longColumn, longs.head, Generic(longSchema))
   }
 
-  test("A KijiJob can read a float column with the default reader schema.") {
-    testExpressReadWrite[Float](floatColumn, floats.head, Default)
+  test("A KijiJob can read a float column with the writer schema.") {
+    testExpressReadWrite[Float](floatColumn, floats.head, Writer)
   }
 
   test("A KijiJob can read a float column with a generic reader schema.") {
     testExpressReadWrite[Float](floatColumn, floats.head, Generic(floatSchema))
   }
 
-  test("A KijiJob can read a double column with the default reader schema.") {
-    testExpressReadWrite[Double](doubleColumn, doubles.head, Default)
+  test("A KijiJob can read a double column with the writer schema.") {
+    testExpressReadWrite[Double](doubleColumn, doubles.head, Writer)
   }
 
   test("A KijiJob can read a double column with a generic reader schema.") {
@@ -152,8 +151,8 @@ class ReaderSchemaSuite extends KijiClientTest with KijiSuite {
   }
 
   /** TODO: reenable when Schema-594 is fixed. */
-  ignore("A KijiJob can read a bytes column with the default reader schema.") {
-    testExpressReadWrite[Array[Byte]](bytesColumn, bytes.head, Default)
+  ignore("A KijiJob can read a bytes column with the writer schema.") {
+    testExpressReadWrite[Array[Byte]](bytesColumn, bytes.head, Writer)
   }
 
   /** TODO: reenable when Schema-594 is fixed. */
@@ -161,16 +160,16 @@ class ReaderSchemaSuite extends KijiClientTest with KijiSuite {
     testExpressReadWrite[Array[Byte]](bytesColumn, bytes.head, Generic(bytesSchema))
   }
 
-  test("A KijiJob can read a string column with the default reader schema.") {
-    testExpressReadWrite[String](stringColumn, strings.head, Default)
+  test("A KijiJob can read a string column with the writer schema.") {
+    testExpressReadWrite[String](stringColumn, strings.head, Writer)
   }
 
   test("A KijiJob can read a string column with a generic reader schema.") {
     testExpressReadWrite[String](stringColumn, strings.head, Generic(stringSchema))
   }
 
-  test("A KijiJob can read a specific record column with the default reader schema.") {
-    testExpressReadWrite[SimpleRecord](specificColumn, specificRecords.head, Default)
+  test("A KijiJob can read a specific record column with the writer schema.") {
+    testExpressReadWrite[SimpleRecord](specificColumn, specificRecords.head, Writer)
   }
 
   test("A KijiJob can read a specific record column with a generic reader schema.") {
@@ -178,40 +177,48 @@ class ReaderSchemaSuite extends KijiClientTest with KijiSuite {
         Generic(specificSchema))
   }
 
-  test("A KijiJob can read a generic record column with the default reader schema.") {
-    testExpressReadWrite[GenericRecord](genericColumn, genericRecords.head, Default)
+  test("A KijiJob can read a specific record column with a specific reader schema.") {
+    testExpressReadWrite[SimpleRecord](specificColumn, specificRecords.head,
+      Specific(classOf[SimpleRecord]))
+  }
+
+  test("A KijiJob can read a generic record column with the writer schema.") {
+    testExpressReadWrite[GenericRecord](genericColumn, genericRecords.head, Writer)
   }
 
   test("A KijiJob can read a generic record column with a generic reader schema.") {
     testExpressReadWrite[GenericRecord](genericColumn, genericRecords.head, Generic(genericSchema))
   }
 
-  test("A KijiJob can read an enum column with the default reader schema.") {
-    testExpressReadWrite[GenericEnumSymbol](enumColumn, enums.head, Default, Some(enumSchema))
+  test("A KijiJob can read an enum column with the writer schema.") {
+    testExpressReadWrite[GenericEnumSymbol](enumColumn, enums.head, Writer,
+        Some(Generic(enumSchema)))
   }
 
   test("A KijiJob can read an enum column with a generic reader schema.") {
     testExpressReadWrite[String](enumColumn, enums.head, Generic(enumSchema))
   }
 
-  test("A KijiJob can read an array column with the default reader schema.") {
-    testExpressReadWrite[List[String]](arrayColumn, avroArrays.head, Default, Some(arraySchema))
+  test("A KijiJob can read an array column with the writer schema.") {
+    testExpressReadWrite[List[String]](arrayColumn, avroArrays.head, Writer,
+        Some(Generic(arraySchema)))
   }
 
   test("A KijiJob can read an array column with a generic reader schema.") {
     testExpressReadWrite[List[String]](arrayColumn, avroArrays.head, Generic(arraySchema))
   }
 
-  test("A KijiJob can read a union column with the default reader schema.") {
-    testExpressReadWrite[Any](unionColumn, unions.head, Default, Some(unionSchema))
+  test("A KijiJob can read a union column with the writer schema [INT].") {
+    testExpressReadWrite[Any](unionColumn, ints.head, Writer, Some(Generic(unionSchema)))
   }
 
-  test("A KijiJob can read a union column with a generic reader schema.") {
-    testExpressReadWrite[Any](arrayColumn, unions.head, Generic(unionSchema))
+  test("A KijiJob can read a union column with the writer schema [STRING].") {
+    testExpressReadWrite[Any](unionColumn, strings.head, Writer, Some(Generic(unionSchema)))
   }
 
-  test("A KijiJob can read a fixed column with the default reader schema.") {
-    testExpressReadWrite[GenericFixed](fixedColumn, fixeds.head, Default, Some(fixedSchema))
+  test("A KijiJob can read a fixed column with the writer schema [INT].") {
+    testExpressReadWrite[GenericFixed](fixedColumn, fixeds.head, Writer,
+        Some(Generic(fixedSchema)))
   }
 
   test("A KijiJob can read a fixed column with a generic reader schema.") {
@@ -237,7 +244,6 @@ class ReadWriteJob[T](
   private def unwrap(slice: KijiSlice[T]): (T, Long) = {
     require(slice.size == 1)
     val cell = slice.getFirst()
-    if (cell.datum != null) { require(cell.datum.isInstanceOf[T]) }
     (cell.datum, cell.version)
   }
 

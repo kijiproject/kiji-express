@@ -37,7 +37,7 @@ import org.kiji.express.util.PipeConversions
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.annotations.Inheritance
-import cascading.tuple.hadoop.TupleSerializationProps
+import org.apache.avro.util.Utf8
 
 /**
  * KijiJob is KijiExpress's extension of Scalding's `Job`, and users should extend it when writing
@@ -86,6 +86,14 @@ class KijiJob(args: Args = Args(Nil))
     super.validateSources(mode)
 
   }
+
+  /**
+   * Converts an Avro [[org.apache.avro.util.Utf8]] to a [[java.lang.String]].
+   *
+   * @param utf8 to convert to a [[java.lang.String]].
+   * @return string equivalent of utf8 input
+   */
+  implicit def utf8ToString(utf8: Utf8): String =  utf8.toString
 
   override def config(implicit mode: Mode): Map[AnyRef, AnyRef] = {
     val baseConfig = super.config(mode)

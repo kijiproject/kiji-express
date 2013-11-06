@@ -29,11 +29,12 @@ import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
+import org.kiji.express.avro.SimpleRecord
+import org.kiji.express.{KijiSuite, Cell, KijiSlice}
+import org.kiji.express.SchemaSpec.Specific
+import org.kiji.express.SchemaSpec.Generic
 import org.kiji.schema.filter.KijiColumnFilter
 import org.kiji.schema.filter.RegexQualifierColumnFilter
-import org.kiji.express.avro.SimpleRecord
-import org.kiji.express.KijiSlice
-import org.kiji.express.Cell
 
 @RunWith(classOf[JUnitRunner])
 class ColumnRequestSuite extends FunSuite {
@@ -73,7 +74,7 @@ class ColumnRequestSuite extends FunSuite {
     val col: ColumnFamilyRequestOutput = ColumnFamilyRequestOutput(colFamily, qualifierSelector)
     assert(colFamily === col.family)
     assert(qualifierSelector === col.qualifierSelector)
-    assert(None === col.schema)
+    assert(None === col.schemaSpec.schema)
   }
 
   test("ColumnFamilyRequestOutput factory method creates ColumnFamilyRequestOutput.") {
@@ -81,7 +82,7 @@ class ColumnRequestSuite extends FunSuite {
 
     assert(colFamily === col.family)
     assert(qualifierSelector === qualifierSelector)
-    assert(schema === col.schema)
+    assert(schema === col.schemaSpec.schema)
   }
 
   test("Fields of a QualifiedColumnRequestInput are the same as those it is constructed with.") {
@@ -103,14 +104,14 @@ class ColumnRequestSuite extends FunSuite {
 
     assert(colFamily === col.family)
     assert(colQualifier === col.qualifier)
-    assert(None === col.schema)
+    assert(None === col.schemaSpec.schema)
   }
 
   test("QualifiedColumnRequestOutput factory method creates QualifiedColumnRequestOutput.") {
     val col = QualifiedColumnRequestOutput(colFamily, colQualifier, schema.get)
     assert(colQualifier === col.qualifier)
     assert(colFamily === col.family)
-    assert(schema === col.schema)
+    assert(schema === col.schemaSpec.schema)
   }
 
   test("Two ColumnFamilys with the same parameters are equal and hash to the same value.") {
@@ -205,38 +206,38 @@ class ColumnRequestSuite extends FunSuite {
   }
 
   test("A QualfifedColumnRequestOutput with a schema must be serializable.") {
-    val col = QualifiedColumnRequestOutput("foo", "bar", Some(Schema.create(Schema.Type.FLOAT)))
+    val col = QualifiedColumnRequestOutput("foo", "bar", Schema.create(Schema.Type.FLOAT))
     assertCROEqual(col, copyBySerialization(col))
   }
 
   test("A ColumnFamilyRequestOutput must be serializable.") {
-    val col = ColumnFamilyRequestOutput("foo", 'bar, None)
+    val col = ColumnFamilyRequestOutput("foo", 'bar)
     assertCROEqual(col, copyBySerialization(col))
   }
 
   test("A ColumnFamilyRequestOutput with a schema must be serializable.") {
-    val col = ColumnFamilyRequestOutput("foo", 'bar, Some(Schema.create(Schema.Type.FLOAT)))
+    val col = ColumnFamilyRequestOutput("foo", 'bar, Schema.create(Schema.Type.FLOAT))
     assertCROEqual(col, copyBySerialization(col))
   }
 }
 
-object ColumnRequestSuite {
+object ColumnRequestSuite extends KijiSuite {
 
   def assertCROEqual(a: ColumnRequestOutput, b: ColumnRequestOutput) = {
-    assert(a.family == b.family)
-    assert(a.columnName == b.columnName)
-    assert(a.schema == b.schema)
+    assert(a.family === b.family)
+    assert(a.columnName === b.columnName)
+    assert(a.schemaSpec === b.schemaSpec)
     assert(b.encode != null) // No way to easily test function equality. Ensure it was deserialized.
   }
 
   def assertCRIEqual(a: ColumnRequestInput, b: ColumnRequestInput) = {
-    assert(a.family == b.family)
-    assert(a.columnName == b.columnName)
-    assert(a.maxVersions == b.maxVersions)
-    assert(a.filter == b.filter)
-    assert(a.default == b.default)
-    assert(a.pageSize == b.pageSize)
-    assert(a.schema == b.schema)
+    assert(a.family === b.family)
+    assert(a.columnName === b.columnName)
+    assert(a.maxVersions === b.maxVersions)
+    assert(a.filter === b.filter)
+    assert(a.default === b.default)
+    assert(a.pageSize === b.pageSize)
+    assert(a.schema === b.schema)
   }
 
   def copyBySerialization[T <: Serializable](obj: T): T = {

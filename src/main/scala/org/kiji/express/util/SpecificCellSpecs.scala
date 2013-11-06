@@ -30,7 +30,8 @@ import scala.collection.JavaConverters.mapAsJavaMapConverter
 
 import org.apache.avro.specific.SpecificRecord
 
-import org.kiji.express.flow._
+import org.kiji.express.SchemaSpec.Specific
+import org.kiji.express.flow.ColumnRequestInput
 import org.kiji.schema.KijiColumnName
 import org.kiji.schema.KijiTable
 import org.kiji.schema.layout.CellSpec

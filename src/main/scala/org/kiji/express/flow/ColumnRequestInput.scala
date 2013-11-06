@@ -19,15 +19,20 @@
 
 package org.kiji.express.flow
 
+import org.apache.avro.Schema
 import org.apache.avro.specific.SpecificRecord
 
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.annotations.Inheritance
+import org.kiji.express.SchemaSpec
+import org.kiji.express.SchemaSpec.Writer
+import org.kiji.express.SchemaSpec.Specific
+import org.kiji.express.SchemaSpec.Generic
 import org.kiji.express.KijiSlice
 import org.kiji.schema.KijiColumnName
+import org.kiji.schema.KijiInvalidNameException
 import org.kiji.schema.filter.KijiColumnFilter
-import org.apache.avro.Schema
 
 @ApiAudience.Framework
 @ApiStability.Experimental
@@ -51,6 +56,11 @@ trait ColumnRequestInput {
    * The [[org.kiji.schema.KijiColumnName]] of the column.
    */
   def columnName: KijiColumnName
+
+  /**
+   * Specifies the schema of data to be read from the column.
+   */
+  def schema: SchemaSpec
 
   /**
    * Specifies the maximum number of cells (from the most recent) to retrieve from a column.
@@ -79,11 +89,6 @@ trait ColumnRequestInput {
    * If None, paging is disabled.
    */
   def pageSize: Option[Int]
-
-  /**
-   * Specifies the schema type of data to be read from the column.
-   */
-  def schema: ReaderSchema
 }
 
 object ColumnRequestInput {
@@ -103,13 +108,14 @@ object ColumnRequestInput {
     filter: Option[KijiColumnFilter] = None,
     default: Option[KijiSlice[_]] = None,
     pageSize: Option[Int] = None,
-    schema: ReaderSchema = Default
+    schema: SchemaSpec = Writer
   ): ColumnRequestInput = {
     column.split(':').toList match {
       case family :: qualifier :: Nil =>
-        QualifiedColumnRequestInput(family, qualifier, schema = schema)
+        QualifiedColumnRequestInput(family, qualifier, maxVersions, filter, default, pageSize,
+            schema)
       case family :: Nil =>
-        ColumnFamilyRequestInput(family, schema = schema)
+        ColumnFamilyRequestInput(family, maxVersions, filter, default, pageSize, schema)
       case _ => throw new IllegalArgumentException("column name must contain 'family:qualifier'" +
           " for a group-type, or 'family' for a map-type column.")
     }
@@ -122,14 +128,14 @@ object ColumnRequestInput {
    * schema of the provided specific Avro record.
    *
    * @param column The requested column name.
-   * @param avroClass of specific record to read from the column.
+   * @param specificRecord class to read from the column.
    * @return ColumnRequestInput with supplied options.
    */
   def apply(
       column: String,
-      avroClass: Class[_ <: SpecificRecord]
+      specificRecord: Class[_ <: SpecificRecord]
   ): ColumnRequestInput = {
-    ColumnRequestInput(column, schema = Specific(avroClass))
+    ColumnRequestInput(column, schema = Specific(specificRecord))
   }
 
   /**
@@ -168,9 +174,9 @@ final case class QualifiedColumnRequestInput (
     filter: Option[KijiColumnFilter] = None,
     default: Option[KijiSlice[_]] = None,
     pageSize: Option[Int] = None,
-    schema: ReaderSchema = Default
+    schema: SchemaSpec = Writer
 ) extends ColumnRequestInput {
-  @transient override val columnName: KijiColumnName = new KijiColumnName(family, qualifier)
+  @transient override lazy val columnName: KijiColumnName = new KijiColumnName(family, qualifier)
 }
 
 object QualifiedColumnRequestInput {
@@ -180,15 +186,15 @@ object QualifiedColumnRequestInput {
    *
    * @param family The requested column family name.
    * @param qualifier The requested column qualifier name.
-   * @param avroClass of specific record to read from the column.
+   * @param specificRecord class to read from the column.
    * @return QualifiedColumnRequestInput with supplied options.
    */
   def apply(
       family: String,
       qualifier: String,
-      avroClass: Class[_ <: SpecificRecord]
+      specificRecord: Class[_ <: SpecificRecord]
   ) : QualifiedColumnRequestInput = {
-    QualifiedColumnRequestInput(family, qualifier, schema = Specific(avroClass))
+    QualifiedColumnRequestInput(family, qualifier, schema = Specific(specificRecord))
   }
 
   /**
@@ -217,19 +223,20 @@ object QualifiedColumnRequestInput {
  * @param filter Filter to use when reading back cells (default is None).
  * @param default Default KijiSlice to return in case column is empty in row.
  * @param pageSize Maximum number of cells to request from HBase per RPC.
- * @param schema Reader schema specification.  Defaults to the default reader schema.
+ * @param schema Reader schema specification.  Defaults to [[org.kiji.express.SchemaSpec.Writer]].
  */
-final case class ColumnFamilyRequestInput (
+final case class ColumnFamilyRequestInput(
     family: String,
     maxVersions: Int = latest,
     filter: Option[KijiColumnFilter] = None,
     default: Option[KijiSlice[_]] = None,
     pageSize: Option[Int] = None,
-    schema: ReaderSchema = Default
+    schema: SchemaSpec = Writer
 ) extends ColumnRequestInput {
-  require(!family.contains(':'), "family name of map-type column may not contain a ':'.")
-
-  @transient override val columnName: KijiColumnName = new KijiColumnName(family)
+  if (family.contains(':')) {
+    throw new KijiInvalidNameException("Cannot have a ':' in family name for column family request")
+  }
+  @transient override lazy val columnName: KijiColumnName = new KijiColumnName(family)
 }
 
 object ColumnFamilyRequestInput {
@@ -238,14 +245,14 @@ object ColumnFamilyRequestInput {
    * specific Avro record type.
    *
    * @param family The requested column family name.
-   * @param avroClass of specific record to read from the column.
+   * @param specificRecord class to read from the column.
    * @return ColumnFamilyRequestInput with supplied options.
    */
   def apply(
       family: String,
-      avroClass: Class[_ <: SpecificRecord]
+      specificRecord: Class[_ <: SpecificRecord]
   ): ColumnFamilyRequestInput = {
-    ColumnFamilyRequestInput(family, schema = Specific(avroClass))
+    ColumnFamilyRequestInput(family, schema = Specific(specificRecord))
   }
 
   /**
@@ -253,31 +260,13 @@ object ColumnFamilyRequestInput {
    * generic Avro type specified by a [[org.apache.avro.Schema]].
    *
    * @param family The requested column family name.
-   * @param schema of generic Avro type to read from the column.
+   * @param genericSchema of Avro type to read from the column.
    * @return ColumnFamilyRequestInput with supplied options.
    */
   def apply(
       family: String,
-      schema: Schema
+      genericSchema: Schema
   ): ColumnFamilyRequestInput = {
-    ColumnFamilyRequestInput(family, schema = Generic(schema))
+    ColumnFamilyRequestInput(family, schema = Generic(genericSchema))
   }
 }
-
-/**
- * A data type for representing how a cell should be read.  It can be Generic, in which case it
- * represents a generic Avro type (primitive or complex) of the given schema; or Specific,
- * in which case it represents a specific compiled Avro record; or Default, which will be resolved
- * at runtime to the default reader schema.
- */
-sealed trait ReaderSchema
-case class Generic(schema: String) extends ReaderSchema
-object Generic {
-  val parser = new Schema.Parser()
-  def apply(schema: Schema) = new Generic(schema.toString(false))
-  def schema(g: Generic) = parser.parse(g.schema)
-  def schema(json: String) = parser.parse(json)
-}
-case class Specific(klass: Class[_ <: SpecificRecord]) extends ReaderSchema
-case object Writer extends ReaderSchema
-case object Default extends ReaderSchema

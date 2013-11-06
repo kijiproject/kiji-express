@@ -37,8 +37,9 @@ import org.kiji.schema.KijiTableReader
 import org.kiji.schema.KijiTableWriter
 import org.kiji.schema.KijiDataRequest
 import org.kiji.schema.KijiColumnName
-import org.kiji.express.EntityId
+import org.kiji.express.SchemaSpec.Writer
 import org.kiji.express.KijiSuite
+import org.kiji.express.EntityId
 import org.kiji.express.util.AvroTypesComplete
 import com.twitter.scalding.IterableSource
 
@@ -136,64 +137,64 @@ class WriterSchemaSuite extends KijiClientTest with KijiSuite {
     verify(inputs, output.columnName, verifier)
   }
 
-  test("A KijiJob can write to a counter column without a specified writer schema.") {
-    testWrite(longs, QualifiedColumnRequestOutput(family, counterColumn))
+  test("A KijiJob can write to a counter column with a Writer schema spec.") {
+    testWrite(longs, QualifiedColumnRequestOutput(family, counterColumn, Writer))
   }
 
-  test("A KijiJob can write to a raw bytes column without a specified writer schema.") {
-    testWrite(bytes, QualifiedColumnRequestOutput(family, rawColumn))
+  test("A KijiJob can write to a raw bytes column with a Writer schema spec.") {
+    testWrite(bytes, QualifiedColumnRequestOutput(family, rawColumn, Writer))
   }
 
-  test("A KijiJob can write to an Avro null column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro null column with a Generic schema spec.") {
     testWrite(nulls, QualifiedColumnRequestOutput(family, nullColumn, nullSchema), nullVerifier)
   }
 
-  test("A KijiJob can write to an Avro null column without a specified writer schema.") {
+  test("A KijiJob can write to an Avro null column with a Writer schema spec.") {
     testWrite(nulls, QualifiedColumnRequestOutput(family, nullColumn), nullVerifier)
   }
 
-  test("A KijiJob can write to an Avro boolean column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro boolean column with a Generic schema spec.") {
     testWrite(booleans, QualifiedColumnRequestOutput(family, booleanColumn, booleanSchema))
   }
 
-  test("A KijiJob can write to an Avro boolean column without a specified writer schema.") {
-    testWrite(booleans, QualifiedColumnRequestOutput(family, booleanColumn))
+  test("A KijiJob can write to an Avro boolean column with a Writer schema spec.") {
+    testWrite(booleans, QualifiedColumnRequestOutput(family, booleanColumn, Writer))
   }
 
-  test("A KijiJob can write to an Avro int column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro int column with a Generic schema spec.") {
     testWrite(ints, QualifiedColumnRequestOutput(family, intColumn, intSchema))
   }
 
-  test("A KijiJob can write to an Avro int column without a specified writer schema.") {
-    testWrite(ints, QualifiedColumnRequestOutput(family, intColumn))
+  test("A KijiJob can write to an Avro int column with a Writer schema spec.") {
+    testWrite(ints, QualifiedColumnRequestOutput(family, intColumn, Writer))
   }
 
-  test("A KijiJob can write to an Avro long column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro long column with a Generic schema spec.") {
     testWrite(longs, QualifiedColumnRequestOutput(family, longColumn, longSchema))
   }
 
-  test("A KijiJob can write to an Avro long column without a specified writer schema.") {
-    testWrite(longs, QualifiedColumnRequestOutput(family, longColumn))
+  test("A KijiJob can write to an Avro long column with a Writer schema spec.") {
+    testWrite(longs, QualifiedColumnRequestOutput(family, longColumn, Writer))
   }
 
   test("A KijiJob can write ints to an Avro long column with an int schema.") {
     testWrite(ints, QualifiedColumnRequestOutput(family, longColumn, intSchema))
   }
 
-  test("A KijiJob can write to an Avro float column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro float column with a Generic schema spec.") {
     testWrite(floats, QualifiedColumnRequestOutput(family, floatColumn, floatSchema))
   }
 
-  test("A KijiJob can write to an Avro float column without a specified writer schema.") {
-    testWrite(floats, QualifiedColumnRequestOutput(family, floatColumn))
+  test("A KijiJob can write to an Avro float column with a Writer schema spec.") {
+    testWrite(floats, QualifiedColumnRequestOutput(family, floatColumn, Writer))
   }
 
-  test("A KijiJob can write to an Avro double column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro double column with a Generic schema spec.") {
     testWrite(doubles, QualifiedColumnRequestOutput(family, doubleColumn, doubleSchema))
   }
 
-  test("A KijiJob can write to an Avro double column without a specified writer schema.") {
-    testWrite(doubles, QualifiedColumnRequestOutput(family, doubleColumn))
+  test("A KijiJob can write to an Avro double column with a Writer schema spec.") {
+    testWrite(doubles, QualifiedColumnRequestOutput(family, doubleColumn, Writer))
   }
 
   test("A KijiJob can write floats to an Avro double column with a float schema.") {
@@ -201,85 +202,81 @@ class WriterSchemaSuite extends KijiClientTest with KijiSuite {
   }
 
   /** TODO: reenable when Schema-594 is fixed. */
-  ignore("A KijiJob can write to an Avro bytes column with a specified writer schema.") {
+  ignore("A KijiJob can write to an Avro bytes column with a Generic schema spec.") {
     testWrite(bytes, QualifiedColumnRequestOutput(family, bytesColumn, bytesSchema))
   }
 
   /** TODO: reenable when Schema-594 is fixed. */
-  ignore("A KijiJob can write to an Avro bytes column without a specified writer schema.") {
-    testWrite(bytes, QualifiedColumnRequestOutput(family, bytesColumn))
+  ignore("A KijiJob can write to an Avro bytes column with a Writer schema spec.") {
+    testWrite(bytes, QualifiedColumnRequestOutput(family, bytesColumn, Writer))
   }
 
-  test("A KijiJob can write to an Avro string column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro string column with a Generic schema spec.") {
     testWrite(strings, QualifiedColumnRequestOutput(family, stringColumn, stringSchema))
   }
 
-  test("A KijiJob can write to an Avro string column without a specified writer schema.") {
-    testWrite(strings, QualifiedColumnRequestOutput(family, stringColumn))
+  test("A KijiJob can write to an Avro string column with a Writer schema spec.") {
+    testWrite(strings, QualifiedColumnRequestOutput(family, stringColumn, Writer))
   }
 
-  test("A KijiJob can write to an Avro specific record column with a specified writer schema.") {
+  test("A KijiJob can write to an Avro specific record column with a Generic schema spec.") {
     testWrite(specificRecords, QualifiedColumnRequestOutput(family, specificColumn, specificSchema))
   }
 
-  test("A KijiJob can write to an Avro specific record column without a specified writer schema.") {
-    testWrite(specificRecords, QualifiedColumnRequestOutput(family, specificColumn))
+  test("A KijiJob can write to an Avro specific record column with a Writer schema spec.") {
+    testWrite(specificRecords, QualifiedColumnRequestOutput(family, specificColumn, Writer))
   }
 
-  /** TODO: fix generic record serialization. */
-  test("A KijiJob can write to a generic record column with a specified writer schema.") {
+  test("A KijiJob can write to a generic record column with a Generic schema spec.") {
     testWrite(genericRecords, QualifiedColumnRequestOutput(family, genericColumn, genericSchema))
   }
 
-  /** TODO: fix generic record serialization. */
-  test("A KijiJob can write to a generic record column without a specified writer schema.") {
-    testWrite(genericRecords, QualifiedColumnRequestOutput(family, genericColumn))
+  test("A KijiJob can write to a generic record column with a Writer schema spec.") {
+    testWrite(genericRecords, QualifiedColumnRequestOutput(family, genericColumn, Writer))
   }
 
-  test("A KijiJob can write to an enum column with a specified writer schema.") {
+  test("A KijiJob can write to an enum column with a Generic schema spec.") {
     testWrite(enums, QualifiedColumnRequestOutput(family, enumColumn, enumSchema))
   }
 
-  test("A KijiJob can write to an enum column without a specified writer schema.") {
-    testWrite(enums, QualifiedColumnRequestOutput(family, enumColumn))
+  test("A KijiJob can write to an enum column with a Writer schema spec.") {
+    testWrite(enums, QualifiedColumnRequestOutput(family, enumColumn, Writer))
   }
 
-  test("A KijiJob can write a string to an enum column with a specified writer schema.") {
+  test("A KijiJob can write a string to an enum column with a Generic schema spec.") {
     testWrite(enumStrings, QualifiedColumnRequestOutput(family, enumColumn, enumSchema),
       enumVerifier(enumSchema))
   }
 
-  /** TODO: fix GenericArray serialization. */
-  test("A KijiJob can write an avro array to an array column with a specified writer schema.") {
+  test("A KijiJob can write an avro array to an array column with a Generic schema spec.") {
     testWrite(avroArrays, QualifiedColumnRequestOutput(family, arrayColumn, arraySchema))
   }
 
-  /** TODO: fix GenericArray serialization. */
-  test("A KijiJob can write an avro array to an array column without a specified writer schema."){
-    testWrite(avroArrays, QualifiedColumnRequestOutput(family, arrayColumn))
+  test("A KijiJob can write an avro array to an array column with a Writer schema spec."){
+    testWrite(avroArrays, QualifiedColumnRequestOutput(family, arrayColumn, Writer))
   }
 
-  test("A KijiJob can write an Iterable to an array column with a specified writer schema.") {
+  test("A KijiJob can write an Iterable to an array column with a Generic schema spec.") {
     testWrite(arrays, QualifiedColumnRequestOutput(family, arrayColumn, arraySchema), arrayVerifier)
   }
 
-  test("A KijiJob can write to a union column with a specified writer schema.") {
+  test("A KijiJob can write to a union column with a Generic schema spec.") {
     testWrite(unions, QualifiedColumnRequestOutput(family, unionColumn, unionSchema))
   }
 
-  test("A KijiJob can write to a union column without a specified writer schema.") {
-    testWrite(unions, QualifiedColumnRequestOutput(family, unionColumn))
+  test("A KijiJob can write to a union column with a Writer schema spec.") {
+    testWrite(unions, QualifiedColumnRequestOutput(family, unionColumn, Writer))
   }
 
-  test("A KijiJob can write to a fixed column with a specified writer schema.") {
+  test("A KijiJob can write to a fixed column with a Generic schema spec.") {
     testWrite(fixeds, QualifiedColumnRequestOutput(family, fixedColumn, fixedSchema))
   }
 
-  test("A KijiJob can write to a fixed column without a specified writer schema.") {
-    testWrite(fixeds, QualifiedColumnRequestOutput(family, fixedColumn))
+  test("A KijiJob can write to a fixed column with a Writer schema spec.") {
+    testWrite(fixeds, QualifiedColumnRequestOutput(family, fixedColumn, Writer))
   }
 
-  test("A KijiJob can write a byte array to a fixed column with a specified writer schema.") {
+  test("A KijiJob can write a byte array to a fixed column with a Generic schema spec.") {
     testWrite(fixedByteArrays, QualifiedColumnRequestOutput(family, fixedColumn, fixedSchema),
       fixedVerifier)
   }
