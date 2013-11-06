@@ -88,7 +88,7 @@ class KijiJobSuite extends KijiSuite {
     val specificRecord = new HashSpec(HashType.MD5, 13, true)
     val entityId = EntityId("row01")
     val slice = new KijiSlice(Seq(Cell("family", "column3", 10L, specificRecord)))
-    val input = List(entityId, slice)
+    val input = List((entityId, slice))
 
     def validate(outputBuffer: Buffer[(HashType, Int, Boolean)]) {
       val t = outputBuffer.head
@@ -99,8 +99,8 @@ class KijiJobSuite extends KijiSuite {
 
     class UnpackTupleJob(args: Args) extends KijiJob(args) {
       KijiInput(args("input"), "family:column3" -> 'slice)
-          .map('slice -> 'record) { slice: KijiSlice[HashSpec] => slice.getFirstValue }
-          .unpackTo[HashSpec]('record -> ('hashtype, 'hashsize, 'suppress))
+          .map('slice -> 'record) { slice: KijiSlice[GenericRecord] => slice.getFirstValue }
+          .unpack[GenericRecord]('record -> ('hashtype, 'hashsize, 'suppress))
           .write(Tsv(args("output")))
     }
 
