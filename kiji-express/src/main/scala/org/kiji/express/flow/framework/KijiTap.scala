@@ -50,8 +50,7 @@ import org.kiji.express.flow.ColumnInputSpec
 import org.kiji.express.flow.ColumnOutputSpec
 import org.kiji.express.flow.InvalidKijiTapException
 import org.kiji.express.flow.util.ResourceUtil.doAndRelease
-import org.kiji.mapreduce.framework.KijiConfKeys
-import org.kiji.mapreduce.framework.KijiTableInputFormat
+import org.kiji.mapreduce.framework.{HBaseKijiTableInputFormat, KijiConfKeys, KijiTableInputFormat, CassandraKijiTableInputFormat}
 import org.kiji.schema.Kiji
 import org.kiji.schema.KijiColumnName
 import org.kiji.schema.KijiRowData
@@ -134,7 +133,11 @@ final class KijiTap(
    */
   override def sourceConfInit(flow: FlowProcess[JobConf], conf: JobConf) {
     // Configure the job's input format.
-    MapredInputFormatWrapper.setInputFormat(classOf[KijiTableInputFormat], conf)
+    if (KijiURI.newBuilder(tableUri).build().isCassandra) {
+      MapredInputFormatWrapper.setInputFormat(classOf[CassandraKijiTableInputFormat], conf)
+    } else {
+      MapredInputFormatWrapper.setInputFormat(classOf[HBaseKijiTableInputFormat], conf)
+    }
 
     // Store the input table.
     conf.set(KijiConfKeys.KIJI_INPUT_TABLE_URI, tableUri)
@@ -254,7 +257,8 @@ final class KijiTap(
   override def resourceExists(conf: JobConf): Boolean = {
     val uri: KijiURI = KijiURI.newBuilder(tableUri).build()
 
-    doAndRelease(Kiji.Factory.open(uri, conf)) { kiji: Kiji =>
+    //doAndRelease(Kiji.Factory.open(uri, conf)) { kiji: Kiji =>
+    doAndRelease(Kiji.Factory.open(uri)) { kiji: Kiji =>
       kiji.getTableNames.contains(uri.getTable)
     }
   }
@@ -308,7 +312,8 @@ object KijiTap {
     // Try to open the Kiji instance.
     val kiji: Kiji =
         try {
-          Kiji.Factory.open(kijiUri, conf)
+          //Kiji.Factory.open(kijiUri, conf)
+          Kiji.Factory.open(kijiUri)
         } catch {
           case e: Exception =>
             throw new InvalidKijiTapException(

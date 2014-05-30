@@ -183,6 +183,7 @@ class KijiScheme(
       }
       case None => {}
     }
+    //logger.info("Setting Kiji input data request!")
     // Set data request.
     conf.set(
         KijiConfKeys.KIJI_INPUT_DATA_REQUEST,
