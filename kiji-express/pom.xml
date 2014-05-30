@@ -238,9 +238,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <!--<configuration>-->
-          <!--<argLine>-verbose:class</argLine>-->
-        <!--</configuration>-->
       </plugin>
 
     </plugins>
