@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.kiji.express.flow
+package org.kiji.express
 
 import java.io.InputStream
 
@@ -29,16 +29,16 @@ import org.slf4j.LoggerFactory
 import com.twitter.scalding.Args
 import com.twitter.scalding.Hdfs
 import com.twitter.scalding.Mode
-import com.twitter.scalding.NullSource
 import org.junit.Assert
 
 import org.kiji.schema.Kiji
 import org.kiji.schema.KijiURI
 import org.kiji.schema.KijiDataRequest
-import org.kiji.schema.shell.api.Client
 import org.kiji.schema.util.InstanceBuilder
-import org.kiji.schema.cassandra.AbstractCassandraKijiIntegrationTest
+import org.kiji.schema.shell.api.Client
 import org.apache.hadoop.conf.Configuration
+import org.kiji.express.flow.{KijiOutput, FlowCell, KijiInput, KijiJob}
+import org.kiji.schema.cassandra.AbstractCassandraKijiIntegrationTest
 
 class IntegrationTestSimpleFlowCassandra extends AbstractCassandraKijiIntegrationTest {
   private final val Log: Logger = LoggerFactory.getLogger(classOf[IntegrationTestSimpleFlowCassandra])

@@ -37,20 +37,12 @@
       <artifactId>kiji-schema</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.kiji.schema</groupId>
-      <artifactId>kiji-schema-cassandra</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.kiji.schema-shell</groupId>
       <artifactId>kiji-schema-shell</artifactId>
     </dependency>
     <dependency>
       <groupId>org.kiji.mapreduce</groupId>
       <artifactId>kiji-mapreduce</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.kiji.mapreduce</groupId>
-      <artifactId>kiji-mapreduce-cassandra</artifactId>
     </dependency>
 
     <!-- Normal dependencies. -->
@@ -165,12 +157,7 @@
       <type>test-jar</type>
       <scope>compile</scope>
     </dependency>
-    <dependency>
-      <groupId>org.kiji.schema</groupId>
-      <artifactId>kiji-schema-cassandra</artifactId>
-      <type>test-jar</type>
-      <scope>compile</scope>
-    </dependency>
+
     <!--
       Keep this dependency in compile scope so that users can depend on the KijiExpress testing
       framework by only depending on the KijiExpress test jar.
@@ -245,23 +232,7 @@
         <groupId>org.kiji.maven.plugins</groupId>
         <artifactId>hbase-maven-plugin</artifactId>
       </plugin>
-        <plugin>
-            <groupId>org.kiji.maven.plugins</groupId>
-            <artifactId>cassandra-maven-plugin</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>start</goal>
-                        <goal>stop</goal>
-                    </goals>
-                </execution>
-            </executions>
-            <configuration>
-                <numnodes>2</numnodes>
-                <initial.ip>127.0.0.10</initial.ip>
-            </configuration>
-        </plugin>
+
 
 
       <plugin>

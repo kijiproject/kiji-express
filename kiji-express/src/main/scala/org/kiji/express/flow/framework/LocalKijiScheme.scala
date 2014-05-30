@@ -189,7 +189,12 @@ private[express] case class LocalKijiScheme(
           case None => null
         }
       )
-      val scanner = reader.getScanner(request, scannerOptions)
+      // Cassandra Kiji cannot support scanners right now.  Some ugliness here.
+      val scanner = if (table.getURI.isCassandra) {
+        reader.getScanner(request)
+      } else {
+        reader.getScanner(request, scannerOptions)
+      }
       val tableUri = table.getURI
       val context = InputContext(reader, scanner, scanner.iterator.asScala, tableUri, conf)
 

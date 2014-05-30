@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>kiji-express-cassandra</artifactId>
+  <packaging>jar</packaging>
+
+  <parent>
+    <groupId>org.kiji.express</groupId>
+    <artifactId>kiji-express-root</artifactId>
+    <version>2.0.3-SNAPSHOT</version>
+  </parent>
+
+  <name>KijiExpress Cassandra tests.</name>
+  <description>Test cases for KijiExpress on Cassandra-backed Kiji instances.</description>
+  <url>http://www.kiji.org</url>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.3.1</version>
+      </plugin>
+
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>3.1.6</version>
+        <executions>
+          <execution>
+            <id>compilation</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <args>
+                <arg>-unchecked</arg>
+                <arg>-deprecation</arg>
+              </args>
+              <sendJavaToScalac>true</sendJavaToScalac>
+              <jvmArgs>
+                <!-- Fixes the build on OS X based computers. -->
+                <jvmArg>-Xmx2G</jvmArg>
+              </jvmArgs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--Integration tests!-->
+      <plugin>
+        <groupId>org.kiji.maven.plugins</groupId>
+        <artifactId>hbase-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.kiji.maven.plugins</groupId>
+        <artifactId>cassandra-maven-plugin</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>start</goal>
+              <goal>stop</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <numnodes>2</numnodes>
+          <initial.ip>127.0.0.10</initial.ip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <!-- Scala dependencies. -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>2.10.3</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.kiji.express</groupId>
+      <artifactId>kiji-express</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.schema</groupId>
+      <artifactId>kiji-schema</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.schema</groupId>
+      <artifactId>kiji-schema-cassandra</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.schema-shell</groupId>
+      <artifactId>kiji-schema-shell</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.mapreduce</groupId>
+      <artifactId>kiji-mapreduce</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.mapreduce</groupId>
+      <artifactId>kiji-mapreduce-cassandra</artifactId>
+    </dependency>
+
+    <!--Testing-->
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_${scala.version}</artifactId>
+      <version>${scalatest.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.schema</groupId>
+      <artifactId>kiji-schema</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.schema</groupId>
+      <artifactId>kiji-schema-cassandra</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.schema-shell</groupId>
+      <artifactId>kiji-schema-shell</artifactId>
+      <scope>test</scope>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.kiji.express</groupId>
+      <artifactId>kiji-express</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <!--
+       Keep this dependency in compile scope so that users can depend on the KijiExpress testing
+       framework by only depending on the KijiExpress test jar.
+     -->
+    <dependency>
+      <groupId>org.kiji.testing</groupId>
+      <artifactId>fake-hbase</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-minicluster</artifactId>
+      <scope>test</scope>
+      <optional>true</optional>
+      <version>${hadoop.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-test</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>kiji-repos</id>
+      <name>kiji-repos</name>
+      <url>https://repo.wibidata.com/artifactory/kiji</url>
+    </repository>
+    <repository>
+      <id>kiji-nightly</id>
+      <name>kiji-nightly</name>
+      <url>https://repo.wibidata.com/artifactory/kiji-nightly</url>
+    </repository>
+  </repositories>
+</project>
