@@ -105,27 +105,13 @@ class IntegrationTestSimpleFlowCassandra extends AbstractCassandraKijiIntegratio
                         .withQualifier("email").withValue("email2")
             .build()
 
-        class Job(args: Args) extends KijiJob(args) {
-          KijiInput.builder
-              .withTableURI(table.getURI.toString)
-              .withColumns("info:email" -> 'slice)
-              .build
-              // Extract the most recent value out of the list of flow cells.
-              .flatMap('slice -> 'email) { slice: Seq[FlowCell[CharSequence]] =>
-                slice.head.datum.toString
-              }
-              .map('email -> 'email) { email: String => email.toUpperCase }
-              .debug
-              .write(KijiOutput.builder
-                  .withTableURI(table.getURI.toString)
-                  .withColumns('email -> "info:email")
-                  .build)
-
-        }
         // Add contact point for Cassandra cluster.
         val conf: Configuration = getConf
-        val args = Mode.putMode(Hdfs(false, conf = new JobConf(conf)), Args(List()))
-        Assert.assertTrue(new Job(args).run)
+        val args = Mode.putMode(
+          Hdfs(false, conf = new JobConf(conf)),
+          Args(List("--tableUri", table.getURI.toString))
+        )
+        Assert.assertTrue(new SmokeCassandraSuite.SimpleJob(args).run)
         Log.info("Finished running C* Express test!")
         // Check that we updated the table appropriately.  Should have the emails in there in
         // upper case.
