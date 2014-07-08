@@ -21,24 +21,16 @@ package org.kiji.express
 
 import java.io.InputStream
 
+import com.twitter.scalding.{Args, Hdfs, Mode}
 import org.apache.commons.io.IOUtils
-import org.apache.hadoop.mapred.JobConf
-import org.junit.Test
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import com.twitter.scalding.Args
-import com.twitter.scalding.Hdfs
-import com.twitter.scalding.Mode
-import org.junit.Assert
-
-import org.kiji.schema.Kiji
-import org.kiji.schema.KijiURI
-import org.kiji.schema.KijiDataRequest
-import org.kiji.schema.util.InstanceBuilder
-import org.kiji.schema.shell.api.Client
 import org.apache.hadoop.conf.Configuration
-import org.kiji.express.flow.{KijiOutput, FlowCell, KijiInput, KijiJob}
-import org.kiji.schema.cassandra.AbstractCassandraKijiIntegrationTest
+import org.apache.hadoop.mapred.JobConf
+import org.junit.{Assert, Test}
+import org.kiji.schema.{Kiji, KijiDataRequest, KijiURI}
+import org.kiji.schema.cassandra.{AbstractCassandraKijiIntegrationTest, CassandraKijiURI}
+import org.kiji.schema.shell.api.Client
+import org.kiji.schema.util.InstanceBuilder
+import org.slf4j.{Logger, LoggerFactory}
 
 class IntegrationTestSimpleFlowCassandra extends AbstractCassandraKijiIntegrationTest {
   private final val Log: Logger = LoggerFactory.getLogger(classOf[IntegrationTestSimpleFlowCassandra])
@@ -85,8 +77,8 @@ class IntegrationTestSimpleFlowCassandra extends AbstractCassandraKijiIntegratio
 
   @Test
   def testSimpleFlow(): Unit = {
-    val kijiURI = getKijiURI()
-    Assert.assertTrue(kijiURI.isCassandra)
+    val kijiURI = getKijiURI
+    Assert.assertEquals(CassandraKijiURI.CASSANDRA_SCHEME, kijiURI.getScheme)
     create(TestLayout, kijiURI)
 
     val kiji = Kiji.Factory.open(kijiURI)

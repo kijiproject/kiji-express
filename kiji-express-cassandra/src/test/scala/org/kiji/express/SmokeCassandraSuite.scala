@@ -20,31 +20,19 @@
 package org.kiji.express
 
 import java.io.InputStream
-import scala.collection.JavaConverters.mapAsScalaMapConverter
 
-import com.twitter.scalding.Args
-import com.twitter.scalding.GroupBuilder
-import com.twitter.scalding.Local
-import com.twitter.scalding.Mode
-import com.twitter.scalding.NullSource
-import com.twitter.scalding.Stat
+import com.twitter.scalding.{Args, Local, Mode}
 import org.apache.commons.io.IOUtils
-import org.junit.Assert
-import org.junit.Test
-
-import org.kiji.mapreduce.avro.generated.JobHistoryEntry
-import org.kiji.mapreduce.framework.JobHistoryKijiTable
-import org.kiji.schema.Kiji
-import org.kiji.schema.KijiTable
-import org.kiji.schema.KijiURI
+import org.junit.{Assert, Test}
+import org.kiji.express.flow.{FlowCell, KijiInput, KijiJob, KijiOutput}
+import org.kiji.schema.{Kiji, KijiTable, KijiURI}
+import org.kiji.schema.cassandra.CassandraKijiClientTest
 import org.kiji.schema.shell.api.Client
 import org.kiji.schema.util.InstanceBuilder
-import org.kiji.express.flow.{KijiOutput, FlowCell, KijiInput, KijiJob}
-import org.kiji.schema.cassandra.CassandraKijiClientTest
 
 /** Very basic smoke test for local unit tests with Cassandra-backed Kiji. */
 class SmokeCassandraSuite extends CassandraKijiClientTest {
-  import SmokeCassandraSuite._
+  import org.kiji.express.SmokeCassandraSuite._
 
   @Test
   def testSimpleFlow(): Unit = {

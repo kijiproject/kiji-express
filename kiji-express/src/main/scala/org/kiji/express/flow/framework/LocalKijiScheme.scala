@@ -23,6 +23,8 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.Properties
 
+import org.kiji.schema.hbase.HBaseKijiURI
+
 import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.collection.JavaConverters.mapAsJavaMapConverter
@@ -190,10 +192,11 @@ private[express] case class LocalKijiScheme(
         }
       )
       // Cassandra Kiji cannot support scanners right now.  Some ugliness here.
-      val scanner = if (table.getURI.isCassandra) {
-        reader.getScanner(request)
-      } else {
+      val scanner = if (table.getURI.getScheme == KijiURI.KIJI_SCHEME
+          || table.getURI.getScheme == HBaseKijiURI.HBASE_SCHEME) {
         reader.getScanner(request, scannerOptions)
+      } else {
+        reader.getScanner(request)
       }
       val tableUri = table.getURI
       val context = InputContext(reader, scanner, scanner.iterator.asScala, tableUri, conf)

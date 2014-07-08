@@ -19,45 +19,31 @@
 
 package org.kiji.express.flow.framework
 
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import java.util.UUID
 
 import cascading.flow.FlowProcess
 import cascading.flow.hadoop.HadoopFlowProcess
 import cascading.scheme.Scheme
 import cascading.tap.Tap
-import cascading.tap.hadoop.io.HadoopTupleEntrySchemeCollector
-import cascading.tap.hadoop.io.HadoopTupleEntrySchemeIterator
-import cascading.tuple.TupleEntryCollector
-import cascading.tuple.TupleEntryIterator
+import cascading.tap.hadoop.io.{HadoopTupleEntrySchemeCollector, HadoopTupleEntrySchemeIterator}
+import cascading.tuple.{TupleEntryCollector, TupleEntryIterator}
 import com.google.common.base.Objects
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.security.User
-import org.apache.hadoop.mapred.JobConf
-import org.apache.hadoop.mapred.OutputCollector
-import org.apache.hadoop.mapred.RecordReader
+import org.apache.hadoop.mapred.{JobConf, OutputCollector, RecordReader}
 import org.apache.hadoop.mapred.lib.NullOutputFormat
 import org.apache.hadoop.security.UserGroupInformation
-import org.apache.hadoop.security.token.Token
-import org.apache.hadoop.security.token.TokenIdentifier
-import org.apache.hadoop.util.StringUtils
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-
-import org.kiji.annotations.ApiAudience
-import org.kiji.annotations.ApiStability
-import org.kiji.express.flow.ColumnInputSpec
-import org.kiji.express.flow.ColumnOutputSpec
-import org.kiji.express.flow.InvalidKijiTapException
+import org.apache.hadoop.security.token.{Token, TokenIdentifier}
+import org.kiji.annotations.{ApiAudience, ApiStability}
+import org.kiji.express.flow.{ColumnInputSpec, ColumnOutputSpec, InvalidKijiTapException}
 import org.kiji.express.flow.util.ResourceUtil.doAndRelease
 import org.kiji.mapreduce.framework.{KijiConfKeys, KijiTableInputFormat}
-import org.kiji.schema.Kiji
-import org.kiji.schema.KijiColumnName
-import org.kiji.schema.KijiRowData
-import org.kiji.schema.KijiTable
-import org.kiji.schema.KijiURI
 import org.kiji.schema.layout.KijiTableLayout
 import org.kiji.schema.{EntityId => JEntityId}
+import org.kiji.schema.{Kiji, KijiColumnName, KijiRowData, KijiTable, KijiURI}
+import org.slf4j.{Logger, LoggerFactory}
+
+import scala.collection.JavaConverters.asScalaIteratorConverter
 
 /**
  * A Kiji-specific implementation of a Cascading `Tap`, which defines the location of a Kiji table.
