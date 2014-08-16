@@ -35,12 +35,12 @@ import org.apache.hadoop.hbase.protobuf.generated.ClientProtos
 class ResultSerializer extends Serializer[Result] {
   override def write(kryo: Kryo, output: Output, result: Result): Unit = {
     val protoResult: ClientProtos.Result = ProtobufUtil.toResult(result)
-    kryo.writeClassAndObject(output, protoResult)
+    protoResult.writeTo(output)
   }
 
   override def read(kryo: Kryo, input: Input, clazz: Class[Result]): Result = {
     val protoResult: ClientProtos.Result =
-      kryo.readClassAndObject(input).asInstanceOf[ClientProtos.Result]
+      ClientProtos.Result.parseFrom(input)
     val result: Result = ProtobufUtil.toResult(protoResult)
     result
   }
