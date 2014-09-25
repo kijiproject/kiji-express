@@ -19,6 +19,7 @@
 
 package org.kiji.express.flow
 
+import java.io.File
 import java.io.Serializable
 import java.util.Properties
 
@@ -486,7 +487,7 @@ object KijiJob {
   def classpathJars(): Option[String] = {
     val classpath: String =
       sys.env.get("CLASSPATH") match {
-        case Some(classpath) => classpath
+        case Some(environmentClasspath) => environmentClasspath
         case None => sys.props.get("java.class.path").getOrElse {
           logger.warn(
             "Cannot find classpath jars using $CLASSPATH or system property java.class.path.")
@@ -496,10 +497,10 @@ object KijiJob {
     val hdfsFormattedClasspath: String = classpath
         .split(sys.props.get("path.separator").get)
         // TODO (EXP-493): Tar up directories so they can also go on the dist cache.
-        .filter{ fileName: String => fileName.toLowerCase().endsWith(".jar") ||
-            fileName.toLowerCase().endsWith(".zip")
+        .filter{ fileName: String => fileName.toLowerCase.endsWith(".jar") ||
+          fileName.toLowerCase.endsWith(".zip")
         }
-        .map{ fileName: String => "file://" + fileName }
+        .map{ fileName: String => new File(fileName).getAbsoluteFile.toURI.toString }
         .mkString(",")
     if (hdfsFormattedClasspath.isEmpty) {
       None
