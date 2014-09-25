@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory
 import org.kiji.annotations.ApiAudience
 import org.kiji.annotations.ApiStability
 import org.kiji.annotations.Inheritance
+import org.kiji.commons.ClasspathUtils
 import org.kiji.express.flow.framework.ExpressJobHistoryKijiTable
 import org.kiji.express.flow.framework.KijiTap
 import org.kiji.express.flow.framework.LocalKijiTap
@@ -484,23 +485,11 @@ object KijiJob {
    * @return The current jars on the classpath, formatted as file:///path/to/jar,file://path/to/jar2
    */
   def classpathJars(): Option[String] = {
-    val classpath: String =
-      sys.env.get("CLASSPATH") match {
-        case Some(classpath) => classpath
-        case None => sys.props.get("java.class.path").getOrElse {
-          logger.warn(
-            "Cannot find classpath jars using $CLASSPATH or system property java.class.path.")
-          ""
-        }
-      }
-    val hdfsFormattedClasspath: String = classpath
-        .split(sys.props.get("path.separator").get)
-        // TODO (EXP-493): Tar up directories so they can also go on the dist cache.
-        .filter{ fileName: String => fileName.toLowerCase().endsWith(".jar") ||
-            fileName.toLowerCase().endsWith(".zip")
-        }
-        .map{ fileName: String => "file://" + fileName }
+    val hdfsFormattedClasspath: String = ClasspathUtils.buildClasspath()
+        .asScala
+        .map { entry => entry.toString }
         .mkString(",")
+
     if (hdfsFormattedClasspath.isEmpty) {
       None
     } else {

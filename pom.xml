@@ -31,6 +31,7 @@
 
   <properties>
     <!-- Kiji versions. -->
+    <kiji-commons.version>0.1.0-SNAPSHOT</kiji-commons.version>
     <kiji-schema.version>1.6.0-SNAPSHOT</kiji-schema.version>
     <kiji-schema-shell.version>1.4.0-SNAPSHOT</kiji-schema-shell.version>
     <kiji-mapreduce.version>1.3.0-SNAPSHOT</kiji-mapreduce.version>
@@ -60,6 +61,12 @@
   <dependencyManagement>
     <dependencies>
       <!-- Kiji dependencies. -->
+      <dependency>
+        <groupId>org.kiji.commons</groupId>
+        <artifactId>kiji-commons-java</artifactId>
+        <version>${kiji-commons.version}</version>
+        <scope>provided</scope>
+      </dependency>
       <dependency>
         <groupId>org.kiji.schema</groupId>
         <artifactId>kiji-schema</artifactId>

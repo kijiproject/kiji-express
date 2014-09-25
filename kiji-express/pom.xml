@@ -29,6 +29,10 @@
 
     <!-- Kiji dependencies. -->
     <dependency>
+      <groupId>org.kiji.commons</groupId>
+      <artifactId>kiji-commons-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.kiji.annotations</groupId>
       <artifactId>annotations</artifactId>
     </dependency>
